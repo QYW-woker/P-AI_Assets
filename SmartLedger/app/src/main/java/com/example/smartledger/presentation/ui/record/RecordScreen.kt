@@ -122,7 +122,7 @@ fun RecordScreen(
                 amount = uiState.amountText,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(AppDimens.PaddingXL)
+                    .padding(vertical = AppDimens.PaddingM, horizontal = AppDimens.PaddingL)
             )
 
             // 分类选择网格
@@ -139,7 +139,7 @@ fun RecordScreen(
                 onCategorySelected = { viewModel.selectCategory(it) },
                 modifier = Modifier
                     .weight(1f)
-                    .padding(AppDimens.PaddingL)
+                    .padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
             )
 
             // 扩展字段
@@ -150,7 +150,7 @@ fun RecordScreen(
                 onDateClick = { /* TODO: 打开日期选择器 */ },
                 onAccountClick = { /* TODO: 打开账户选择器 */ },
                 onNoteClick = { /* TODO: 打开备注输入 */ },
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                modifier = Modifier.padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
             )
 
             // 数字键盘
@@ -166,7 +166,7 @@ fun RecordScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppColors.Card)
-                    .padding(AppDimens.PaddingL)
+                    .padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
             )
         }
     }
@@ -189,14 +189,14 @@ private fun AmountDisplay(
         ) {
             Text(
                 text = "¥",
-                style = AppTypography.TitleLarge,
+                style = AppTypography.TitleMedium,
                 color = AppColors.TextPrimary
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = amount.ifEmpty { "0" },
                 style = AppTypography.NumberLarge.copy(
-                    fontSize = androidx.compose.ui.unit.TextUnit(48f, androidx.compose.ui.unit.TextUnitType.Sp)
+                    fontSize = androidx.compose.ui.unit.TextUnit(36f, androidx.compose.ui.unit.TextUnitType.Sp)
                 ),
                 color = AppColors.TextPrimary
             )
@@ -205,7 +205,7 @@ private fun AmountDisplay(
 }
 
 /**
- * 分类选择网格
+ * 分类选择网格 - 紧凑版
  */
 @Composable
 private fun CategoryGrid(
@@ -217,8 +217,8 @@ private fun CategoryGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(5),
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM),
-        verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS),
+        verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
     ) {
         items(categories, key = { it.id }) { category ->
             CategoryItem(
@@ -231,7 +231,7 @@ private fun CategoryGrid(
 }
 
 /**
- * 分类项
+ * 分类项 - 紧凑版
  */
 @Composable
 private fun CategoryItem(
@@ -246,11 +246,13 @@ private fun CategoryItem(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 2.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(Color(android.graphics.Color.parseColor(category.color)))
                 .border(
@@ -262,10 +264,10 @@ private fun CategoryItem(
         ) {
             Text(
                 text = category.icon,
-                style = AppTypography.TitleMedium
+                style = AppTypography.LabelLarge
             )
         }
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = category.name,
             style = AppTypography.LabelSmall,
@@ -352,7 +354,7 @@ private fun ExpandedFields(
 }
 
 /**
- * 数字键盘
+ * 数字键盘 - 紧凑版适配手机
  */
 @Composable
 private fun NumericKeypad(
@@ -370,41 +372,45 @@ private fun NumericKeypad(
         listOf(".", "0", "backspace")
     )
 
-    Column(modifier = modifier) {
-        keys.forEach { row ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
-            ) {
-                row.forEach { key ->
-                    KeypadButton(
-                        key = key,
-                        onClick = {
-                            when (key) {
-                                "backspace" -> onBackspaceClick()
-                                "." -> onDotClick()
-                                else -> onNumberClick(key)
-                            }
-                        },
-                        modifier = Modifier.weight(1f)
-                    )
+    Row(modifier = modifier) {
+        // 数字键盘主体
+        Column(modifier = Modifier.weight(3f)) {
+            keys.forEach { row ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                ) {
+                    row.forEach { key ->
+                        KeypadButton(
+                            key = key,
+                            onClick = {
+                                when (key) {
+                                    "backspace" -> onBackspaceClick()
+                                    "." -> onDotClick()
+                                    else -> onNumberClick(key)
+                                }
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
-                // 确认按钮
-                if (row == keys.last()) {
-                    ConfirmButton(
-                        onClick = onConfirmClick,
-                        enabled = isConfirmEnabled,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
             }
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
         }
+
+        Spacer(modifier = Modifier.width(AppDimens.SpacingS))
+
+        // 确认按钮 - 右侧独立
+        ConfirmButton(
+            onClick = onConfirmClick,
+            enabled = isConfirmEnabled,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
 /**
- * 键盘按钮
+ * 键盘按钮 - 紧凑版
  */
 @Composable
 private fun KeypadButton(
@@ -414,7 +420,7 @@ private fun KeypadButton(
 ) {
     Box(
         modifier = modifier
-            .aspectRatio(1.5f)
+            .height(44.dp)
             .clip(AppShapes.Medium)
             .background(AppColors.Background)
             .clickable(onClick = onClick),
@@ -425,7 +431,7 @@ private fun KeypadButton(
                 imageVector = Icons.AutoMirrored.Filled.Backspace,
                 contentDescription = "退格",
                 tint = AppColors.TextPrimary,
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         } else {
             Text(
@@ -438,7 +444,7 @@ private fun KeypadButton(
 }
 
 /**
- * 确认按钮
+ * 确认按钮 - 占满右侧高度
  */
 @Composable
 private fun ConfirmButton(
@@ -446,9 +452,10 @@ private fun ConfirmButton(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
+    // 4行按钮高度 + 3个间距 = 44*4 + 4*3 = 188dp
     Box(
         modifier = modifier
-            .aspectRatio(0.75f)
+            .height(188.dp)
             .clip(AppShapes.Medium)
             .background(if (enabled) AppColors.Accent else AppColors.Accent.copy(alpha = 0.5f))
             .clickable(enabled = enabled, onClick = onClick),
