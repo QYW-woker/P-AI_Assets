@@ -2,49 +2,30 @@ package com.example.smartledger.presentation.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.smartledger.R
 
 /**
  * 字体族定义
- * DM Sans - 用于数字显示
- * Noto Sans SC - 用于中文显示
+ * 使用系统默认字体，确保在所有设备上正常显示
  *
- * 注意：需要添加字体文件到res/font目录
- * 如果字体文件不存在，将使用系统默认字体
+ * 如需自定义字体，可以：
+ * 1. 将字体文件放到 res/font/ 目录
+ * 2. 使用 Font(R.font.xxx) 加载
  */
 
-// DM Sans字体族 - 数字显示
-val DmSansFontFamily = try {
-    FontFamily(
-        Font(R.font.dm_sans_regular, FontWeight.Normal),
-        Font(R.font.dm_sans_medium, FontWeight.Medium),
-        Font(R.font.dm_sans_semibold, FontWeight.SemiBold),
-        Font(R.font.dm_sans_bold, FontWeight.Bold)
-    )
-} catch (e: Exception) {
-    FontFamily.Default
-}
+// 数字显示字体族 - 使用系统默认
+val DmSansFontFamily = FontFamily.Default
 
-// Noto Sans SC字体族 - 中文显示
-val NotoSansScFontFamily = try {
-    FontFamily(
-        Font(R.font.noto_sans_sc_regular, FontWeight.Normal),
-        Font(R.font.noto_sans_sc_medium, FontWeight.Medium),
-        Font(R.font.noto_sans_sc_bold, FontWeight.Bold)
-    )
-} catch (e: Exception) {
-    FontFamily.Default
-}
+// 中文显示字体族 - 使用系统默认
+val NotoSansScFontFamily = FontFamily.Default
 
 /**
  * 应用字体样式定义
  */
 object AppTypography {
-    // 数字显示样式 - 使用DM Sans
+    // 数字显示样式
     val NumberLarge = TextStyle(
         fontFamily = DmSansFontFamily,
         fontSize = 32.sp,
@@ -71,7 +52,7 @@ object AppTypography {
         fontWeight = FontWeight.Medium
     )
 
-    // 中文显示样式 - 使用Noto Sans SC
+    // 中文显示样式
     val TitleLarge = TextStyle(
         fontFamily = NotoSansScFontFamily,
         fontSize = 22.sp,

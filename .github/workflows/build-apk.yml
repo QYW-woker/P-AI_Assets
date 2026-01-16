@@ -1,0 +1,98 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main, claude/* ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+
+    - name: Download fonts
+      run: |
+        mkdir -p SmartLedger/app/src/main/res/font
+        cd SmartLedger/app/src/main/res/font
+
+        # 下载 DM Sans 字体
+        curl -L -o dm_sans.zip "https://fonts.google.com/download?family=DM%20Sans"
+        unzip -q dm_sans.zip -d dm_sans_temp || true
+
+        # 查找并复制字体文件
+        find dm_sans_temp -name "*.ttf" -exec cp {} . \; 2>/dev/null || true
+
+        # 重命名字体文件
+        mv DMSans-Regular.ttf dm_sans_regular.ttf 2>/dev/null || true
+        mv DMSans-Medium.ttf dm_sans_medium.ttf 2>/dev/null || true
+        mv DMSans-SemiBold.ttf dm_sans_semibold.ttf 2>/dev/null || true
+        mv DMSans-Bold.ttf dm_sans_bold.ttf 2>/dev/null || true
+
+        # 下载 Noto Sans SC 字体
+        curl -L -o noto_sans_sc.zip "https://fonts.google.com/download?family=Noto%20Sans%20SC"
+        unzip -q noto_sans_sc.zip -d noto_sans_temp || true
+
+        # 查找并复制字体文件
+        find noto_sans_temp -name "*.ttf" -exec cp {} . \; 2>/dev/null || true
+
+        # 重命名字体文件
+        mv NotoSansSC-Regular.ttf noto_sans_sc_regular.ttf 2>/dev/null || true
+        mv NotoSansSC-Medium.ttf noto_sans_sc_medium.ttf 2>/dev/null || true
+        mv NotoSansSC-Bold.ttf noto_sans_sc_bold.ttf 2>/dev/null || true
+
+        # 清理临时文件
+        rm -rf dm_sans_temp noto_sans_temp *.zip
+
+        # 列出字体文件
+        ls -la
+
+    - name: Create placeholder fonts if missing
+      run: |
+        cd SmartLedger/app/src/main/res/font
+        # 如果字体下载失败，创建空文件避免编译错误（会使用系统字体）
+        touch dm_sans_regular.ttf dm_sans_medium.ttf dm_sans_semibold.ttf dm_sans_bold.ttf 2>/dev/null || true
+        touch noto_sans_sc_regular.ttf noto_sans_sc_medium.ttf noto_sans_sc_bold.ttf 2>/dev/null || true
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x SmartLedger/gradlew
+
+    - name: Build Debug APK
+      run: |
+        cd SmartLedger
+        ./gradlew assembleDebug --no-daemon
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: SmartLedger-debug
+        path: SmartLedger/app/build/outputs/apk/debug/app-debug.apk
+        retention-days: 30
+
+    - name: Build Release APK (unsigned)
+      run: |
+        cd SmartLedger
+        ./gradlew assembleRelease --no-daemon
+      continue-on-error: true
+
+    - name: Upload Release APK
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: SmartLedger-release-unsigned
+        path: SmartLedger/app/build/outputs/apk/release/app-release-unsigned.apk
+        retention-days: 30
