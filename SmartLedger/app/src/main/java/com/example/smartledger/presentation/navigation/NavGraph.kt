@@ -33,6 +33,8 @@ import com.example.smartledger.presentation.ui.settings.SettingsScreen
 import com.example.smartledger.presentation.ui.backup.BackupScreen
 import com.example.smartledger.presentation.ui.accounts.AccountManagementScreen
 import com.example.smartledger.presentation.ui.category.CategoryManagementScreen
+import com.example.smartledger.presentation.ui.search.SearchScreen
+import com.example.smartledger.presentation.ui.transactions.TransactionListScreen
 
 /**
  * 应用主导航Host
@@ -204,8 +206,13 @@ fun SmartLedgerNavHost(
 
             // 交易列表
             composable(Screen.TransactionList.route) {
-                // TransactionListScreen(...)
-                PlaceholderScreen(title = "全部账目")
+                TransactionListScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                    onNavigateToTransactionDetail = { id ->
+                        navController.navigate(Screen.TransactionDetail.createRoute(id))
+                    }
+                )
             }
 
             // 账户详情
@@ -260,8 +267,12 @@ fun SmartLedgerNavHost(
 
             // 搜索
             composable(Screen.Search.route) {
-                // SearchScreen(...)
-                PlaceholderScreen(title = "搜索")
+                SearchScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTransactionDetail = { id ->
+                        navController.navigate(Screen.TransactionDetail.createRoute(id))
+                    }
+                )
             }
         }
     }
