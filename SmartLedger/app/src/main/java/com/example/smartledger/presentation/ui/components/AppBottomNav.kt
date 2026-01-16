@@ -19,7 +19,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -108,6 +111,7 @@ fun AppBottomNav(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .graphicsLayer { clip = false } // 允许中间按钮超出Surface显示
             .shadow(
                 elevation = 8.dp,
                 shape = AppShapes.TopLarge
@@ -120,16 +124,24 @@ fun AppBottomNav(
                 .fillMaxWidth()
                 .height(AppDimens.BottomNavHeight)
                 .windowInsetsPadding(WindowInsets.navigationBars)
-                .padding(horizontal = AppDimens.PaddingM),
+                .padding(horizontal = AppDimens.PaddingM)
+                .graphicsLayer { clip = false }, // 允许子元素超出边界显示
             horizontalArrangement = Arrangement.SpaceAround,
             verticalAlignment = Alignment.CenterVertically
         ) {
             items.forEach { item ->
                 if (item.route == "record") {
-                    // 中间的记账按钮特殊处理
-                    CenterRecordButton(
-                        onClick = { onNavigate(item.route) }
-                    )
+                    // 中间的记账按钮特殊处理 - 使用 zIndex 确保显示在其他元素之上
+                    Box(
+                        modifier = Modifier
+                            .zIndex(1f)
+                            .graphicsLayer { clip = false },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CenterRecordButton(
+                            onClick = { onNavigate(item.route) }
+                        )
+                    }
                 } else {
                     BottomNavItemView(
                         item = item,
@@ -201,32 +213,48 @@ private fun BottomNavItemView(
 
 /**
  * 中间的记账按钮
+ * 使用适配性更好的尺寸设计
  */
 @Composable
 private fun CenterRecordButton(
     onClick: () -> Unit
 ) {
+    // 外层容器处理阴影和位置，避免裁剪
     Box(
         modifier = Modifier
-            .offset(y = (-16).dp)
-            .size(56.dp)
-            .shadow(
-                elevation = 8.dp,
-                shape = CircleShape,
-                ambientColor = AppColors.Accent.copy(alpha = 0.3f),
-                spotColor = AppColors.Accent.copy(alpha = 0.5f)
-            )
-            .clip(CircleShape)
-            .background(AppColors.Accent)
-            .clickable(onClick = onClick),
+            .wrapContentSize(unbounded = true) // 允许内容超出边界
+            .offset(y = (-12).dp) // 稍微减小偏移量
+            .graphicsLayer { clip = false }, // 防止阴影被裁剪
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Filled.Add,
-            contentDescription = "记账",
-            modifier = Modifier.size(28.dp),
-            tint = Color.White
+        // 阴影层 - 使用单独的Box确保阴影完整显示
+        Box(
+            modifier = Modifier
+                .size(52.dp) // 稍微减小按钮尺寸以适配更多屏幕
+                .shadow(
+                    elevation = 6.dp,
+                    shape = CircleShape,
+                    ambientColor = AppColors.Accent.copy(alpha = 0.2f),
+                    spotColor = AppColors.Accent.copy(alpha = 0.4f)
+                )
         )
+
+        // 按钮主体
+        Box(
+            modifier = Modifier
+                .size(52.dp)
+                .clip(CircleShape)
+                .background(AppColors.Accent)
+                .clickable(onClick = onClick),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "记账",
+                modifier = Modifier.size(26.dp),
+                tint = Color.White
+            )
+        }
     }
 }
 
