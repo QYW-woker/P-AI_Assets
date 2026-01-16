@@ -13,9 +13,10 @@ import kotlinx.coroutines.flow.Flow
 /**
  * 分类统计结果
  */
-data class CategorySummary(
+data class CategorySummaryResult(
     val categoryId: Long,
-    val total: Double
+    val totalAmount: Double,
+    val count: Int
 )
 
 /**
@@ -27,17 +28,17 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE date BETWEEN :start AND :end ORDER BY date DESC")
     fun getTransactionsByDateRange(start: Long, end: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE categoryId = :categoryId ORDER BY date DESC")
-    fun getTransactionsByCategory(categoryId: Long): Flow<List<TransactionEntity>>
+    @Query("SELECT * FROM transactions WHERE categoryId = :categoryId AND date BETWEEN :start AND :end ORDER BY date DESC")
+    fun getTransactionsByCategory(categoryId: Long, start: Long, end: Long): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions WHERE accountId = :accountId ORDER BY date DESC")
-    fun getTransactionsByAccount(accountId: Long): Flow<List<TransactionEntity>>
+    @Query("SELECT * FROM transactions WHERE accountId = :accountId AND date BETWEEN :start AND :end ORDER BY date DESC")
+    fun getTransactionsByAccount(accountId: Long, start: Long, end: Long): Flow<List<TransactionEntity>>
 
     @Query("SELECT SUM(amount) FROM transactions WHERE type = :type AND date BETWEEN :start AND :end")
-    suspend fun getSumByTypeAndDateRange(type: TransactionType, start: Long, end: Long): Double?
+    suspend fun getTotalByDateRange(type: TransactionType, start: Long, end: Long): Double?
 
-    @Query("SELECT categoryId, SUM(amount) as total FROM transactions WHERE type = :type AND date BETWEEN :start AND :end GROUP BY categoryId ORDER BY total DESC")
-    fun getCategorySummary(type: TransactionType, start: Long, end: Long): Flow<List<CategorySummary>>
+    @Query("SELECT categoryId, SUM(amount) as totalAmount, COUNT(*) as count FROM transactions WHERE type = :type AND date BETWEEN :start AND :end GROUP BY categoryId ORDER BY totalAmount DESC")
+    suspend fun getCategorySummary(type: TransactionType, start: Long, end: Long): List<CategorySummaryResult>
 
     @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit")
     fun getRecentTransactions(limit: Int): Flow<List<TransactionEntity>>
@@ -49,7 +50,10 @@ interface TransactionDao {
     suspend fun getTransactionCount(): Int
 
     @Query("SELECT COUNT(*) FROM transactions WHERE date BETWEEN :start AND :end")
-    suspend fun getTransactionCountByDateRange(start: Long, end: Long): Int
+    suspend fun getCountByDateRange(start: Long, end: Long): Int
+
+    @Query("SELECT * FROM transactions ORDER BY date DESC")
+    suspend fun getAllTransactionsForBackup(): List<TransactionEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: TransactionEntity): Long
@@ -63,9 +67,12 @@ interface TransactionDao {
     @Delete
     suspend fun delete(transaction: TransactionEntity)
 
+    @Delete
+    suspend fun deleteAll(transactions: List<TransactionEntity>)
+
     @Query("DELETE FROM transactions WHERE id = :id")
     suspend fun deleteById(id: Long)
 
     @Query("DELETE FROM transactions")
-    suspend fun deleteAll()
+    suspend fun clearAll()
 }

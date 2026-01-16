@@ -27,8 +27,8 @@ interface GoalDao {
     @Query("SELECT * FROM goals WHERE id = :id")
     suspend fun getGoalById(id: Long): GoalEntity?
 
-    @Query("UPDATE goals SET currentAmount = currentAmount + :amount WHERE id = :goalId")
-    suspend fun addToGoal(goalId: Long, amount: Double)
+    @Query("UPDATE goals SET currentAmount = currentAmount + :delta WHERE id = :goalId")
+    suspend fun addToCurrentAmount(goalId: Long, delta: Double)
 
     @Query("UPDATE goals SET currentAmount = :amount WHERE id = :goalId")
     suspend fun setCurrentAmount(goalId: Long, amount: Double)
@@ -51,8 +51,11 @@ interface GoalDao {
     @Query("DELETE FROM goals WHERE id = :id")
     suspend fun deleteById(id: Long)
 
+    @Query("SELECT * FROM goals ORDER BY id")
+    suspend fun getAllGoalsForBackup(): List<GoalEntity>
+
     @Query("DELETE FROM goals")
-    suspend fun deleteAll()
+    suspend fun clearAll()
 
     @Query("SELECT COUNT(*) FROM goals WHERE isCompleted = 0")
     suspend fun getActiveGoalCount(): Int

@@ -2,10 +2,17 @@ package com.example.smartledger.presentation.ui.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.local.entity.TransactionType
+import com.example.smartledger.domain.repository.AccountRepository
+import com.example.smartledger.domain.repository.BudgetRepository
+import com.example.smartledger.domain.repository.CategoryRepository
+import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -18,10 +25,10 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    // TODO: 注入Repository
-    // private val transactionRepository: TransactionRepository,
-    // private val accountRepository: AccountRepository,
-    // private val budgetRepository: BudgetRepository
+    private val transactionRepository: TransactionRepository,
+    private val accountRepository: AccountRepository,
+    private val budgetRepository: BudgetRepository,
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -33,85 +40,91 @@ class HomeViewModel @Inject constructor(
 
     private fun loadHomeData() {
         viewModelScope.launch {
-            // TODO: 从Repository加载真实数据
-            // 目前使用模拟数据
-            val currentMonth = SimpleDateFormat("yyyy年M月", Locale.CHINA).format(Date())
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
 
-            _uiState.value = HomeUiState(
-                currentMonth = currentMonth,
-                totalAssets = 128650.00,
-                assetsChange = 3280.00,
-                assetsChangePercent = 2.6f,
-                budgetTotal = 8000.00,
-                budgetUsed = 5320.00,
-                dailyAvailable = 89.33,
-                monthlyIncome = 15000.00,
-                monthlyExpense = 5320.00,
-                monthlyInvestmentReturn = 580.00,
-                recentTransactions = generateMockTransactions(),
-                isLoading = false
-            )
+                val currentMonth = SimpleDateFormat("yyyy年M月", Locale.CHINA).format(Date())
+
+                // 获取本月时间范围
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                val monthStart = calendar.timeInMillis
+
+                calendar.add(Calendar.MONTH, 1)
+                val monthEnd = calendar.timeInMillis
+
+                // 计算剩余天数
+                val today = Calendar.getInstance()
+                val daysRemaining = calendar.get(Calendar.DAY_OF_MONTH) - today.get(Calendar.DAY_OF_MONTH)
+
+                // 获取总资产
+                val totalAssets = accountRepository.getTotalBalance().first()
+
+                // 获取本月收支
+                val monthlyIncome = transactionRepository.getTotalByDateRange(
+                    TransactionType.INCOME, monthStart, monthEnd
+                )
+                val monthlyExpense = transactionRepository.getTotalByDateRange(
+                    TransactionType.EXPENSE, monthStart, monthEnd
+                )
+
+                // 获取预算
+                val totalBudget = budgetRepository.getTotalBudget().first()
+                val budgetAmount = totalBudget?.amount ?: 0.0
+                val budgetUsed = monthlyExpense
+
+                // 计算日均可用
+                val dailyAvailable = if (daysRemaining > 0 && budgetAmount > budgetUsed) {
+                    (budgetAmount - budgetUsed) / daysRemaining
+                } else {
+                    0.0
+                }
+
+                // 获取最近交易并转换为UI模型
+                val recentTransactions = transactionRepository.getRecentTransactions(10).first()
+                val transactionUiModels = recentTransactions.map { transaction ->
+                    val category = categoryRepository.getCategoryById(transaction.categoryId)
+                    TransactionUiModel(
+                        id = transaction.id,
+                        categoryName = category?.name ?: "未分类",
+                        categoryIcon = category?.icon ?: "📦",
+                        categoryColor = category?.color ?: "#CCCCCC",
+                        amount = transaction.amount,
+                        note = transaction.note,
+                        isExpense = transaction.type == TransactionType.EXPENSE,
+                        date = transaction.date
+                    )
+                }
+
+                _uiState.value = HomeUiState(
+                    currentMonth = currentMonth,
+                    totalAssets = totalAssets,
+                    assetsChange = 0.0, // TODO: 计算资产变化
+                    assetsChangePercent = 0f,
+                    budgetTotal = budgetAmount,
+                    budgetUsed = budgetUsed,
+                    dailyAvailable = dailyAvailable,
+                    monthlyIncome = monthlyIncome,
+                    monthlyExpense = monthlyExpense,
+                    monthlyInvestmentReturn = 0.0, // TODO: 投资收益
+                    recentTransactions = transactionUiModels,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
         }
     }
 
     fun refresh() {
-        _uiState.value = _uiState.value.copy(isLoading = true)
         loadHomeData()
-    }
-
-    private fun generateMockTransactions(): List<TransactionUiModel> {
-        return listOf(
-            TransactionUiModel(
-                id = 1,
-                categoryName = "餐饮美食",
-                categoryIcon = "\uD83C\uDF5C",
-                categoryColor = "#FFF3E0",
-                amount = 35.00,
-                note = "午餐",
-                isExpense = true,
-                date = System.currentTimeMillis()
-            ),
-            TransactionUiModel(
-                id = 2,
-                categoryName = "交通出行",
-                categoryIcon = "\uD83D\uDE87",
-                categoryColor = "#E3F2FD",
-                amount = 6.00,
-                note = "地铁",
-                isExpense = true,
-                date = System.currentTimeMillis() - 3600000
-            ),
-            TransactionUiModel(
-                id = 3,
-                categoryName = "工资薪酬",
-                categoryIcon = "\uD83D\uDCB0",
-                categoryColor = "#E8F5E9",
-                amount = 15000.00,
-                note = "1月工资",
-                isExpense = false,
-                date = System.currentTimeMillis() - 86400000
-            ),
-            TransactionUiModel(
-                id = 4,
-                categoryName = "购物消费",
-                categoryIcon = "\uD83D\uDED2",
-                categoryColor = "#FCE4EC",
-                amount = 299.00,
-                note = "淘宝购物",
-                isExpense = true,
-                date = System.currentTimeMillis() - 172800000
-            ),
-            TransactionUiModel(
-                id = 5,
-                categoryName = "娱乐休闲",
-                categoryIcon = "\uD83C\uDFAC",
-                categoryColor = "#F3E5F5",
-                amount = 89.00,
-                note = "电影票",
-                isExpense = true,
-                date = System.currentTimeMillis() - 259200000
-            )
-        )
     }
 }
 

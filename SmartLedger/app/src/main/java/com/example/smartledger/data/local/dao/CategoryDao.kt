@@ -51,4 +51,10 @@ interface CategoryDao {
 
     @Query("SELECT COUNT(*) FROM categories WHERE type = :type AND isActive = 1")
     suspend fun getCategoryCountByType(type: TransactionType): Int
+
+    @Query("SELECT * FROM categories ORDER BY type, sortOrder")
+    suspend fun getAllCategoriesForBackup(): List<CategoryEntity>
+
+    @Query("DELETE FROM categories")
+    suspend fun clearAll()
 }

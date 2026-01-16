@@ -2,10 +2,16 @@ package com.example.smartledger.presentation.ui.record
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.local.entity.TransactionEntity
+import com.example.smartledger.data.local.entity.TransactionType
+import com.example.smartledger.domain.repository.AccountRepository
+import com.example.smartledger.domain.repository.CategoryRepository
+import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -18,11 +24,16 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class RecordViewModel @Inject constructor(
-    // TODO: 注入Repository
+    private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository,
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RecordUiState())
     val uiState: StateFlow<RecordUiState> = _uiState.asStateFlow()
+
+    private var selectedDate: Long = System.currentTimeMillis()
+    private var selectedAccountId: Long = 1L
 
     init {
         loadInitialData()
@@ -30,35 +41,99 @@ class RecordViewModel @Inject constructor(
 
     private fun loadInitialData() {
         viewModelScope.launch {
-            val today = SimpleDateFormat("MM月dd日", Locale.CHINA).format(Date())
-            _uiState.update {
-                it.copy(
-                    dateText = today,
-                    categories = getDefaultExpenseCategories(),
-                    accountName = "微信支付"
-                )
+            try {
+                val today = SimpleDateFormat("MM月dd日", Locale.CHINA).format(Date())
+
+                // 加载分类
+                val expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                val categoryUiModels = expenseCategories.map { category ->
+                    CategoryUiModel(
+                        id = category.id,
+                        name = category.name,
+                        icon = category.icon,
+                        color = category.color
+                    )
+                }
+
+                // 加载默认账户
+                val accounts = accountRepository.getAllActiveAccounts().first()
+                val defaultAccount = accounts.firstOrNull()
+
+                _uiState.update {
+                    it.copy(
+                        dateText = today,
+                        categories = categoryUiModels.ifEmpty { getDefaultExpenseCategories() },
+                        accountName = defaultAccount?.name ?: "现金",
+                        accounts = accounts.map { acc ->
+                            AccountUiModel(acc.id, acc.name, acc.icon)
+                        }
+                    )
+                }
+
+                if (defaultAccount != null) {
+                    selectedAccountId = defaultAccount.id
+                }
+            } catch (e: Exception) {
+                // 使用默认数据
+                val today = SimpleDateFormat("MM月dd日", Locale.CHINA).format(Date())
+                _uiState.update {
+                    it.copy(
+                        dateText = today,
+                        categories = getDefaultExpenseCategories(),
+                        accountName = "现金"
+                    )
+                }
             }
         }
     }
 
     fun setTransactionType(type: Int) {
-        val categories = when (type) {
-            0 -> getDefaultExpenseCategories()
-            1 -> getDefaultIncomeCategories()
-            else -> getDefaultExpenseCategories()
-        }
-        _uiState.update {
-            it.copy(
-                transactionType = type,
-                categories = categories,
-                selectedCategoryId = null
-            )
+        viewModelScope.launch {
+            val transactionType = when (type) {
+                0 -> TransactionType.EXPENSE
+                1 -> TransactionType.INCOME
+                else -> TransactionType.EXPENSE
+            }
+
+            val categories = categoryRepository.getCategoriesByType(transactionType).first()
+            val categoryUiModels = categories.map { category ->
+                CategoryUiModel(
+                    id = category.id,
+                    name = category.name,
+                    icon = category.icon,
+                    color = category.color
+                )
+            }
+
+            val defaultCategories = if (type == 1) getDefaultIncomeCategories() else getDefaultExpenseCategories()
+
+            _uiState.update {
+                it.copy(
+                    transactionType = type,
+                    categories = categoryUiModels.ifEmpty { defaultCategories },
+                    selectedCategoryId = null
+                )
+            }
         }
     }
 
     fun selectCategory(categoryId: Long) {
         _uiState.update { it.copy(selectedCategoryId = categoryId) }
         updateCanSave()
+    }
+
+    fun selectAccount(accountId: Long) {
+        viewModelScope.launch {
+            selectedAccountId = accountId
+            val account = accountRepository.getAccountById(accountId)
+            _uiState.update { it.copy(accountName = account?.name ?: "现金") }
+        }
+    }
+
+    fun setDate(timestamp: Long) {
+        selectedDate = timestamp
+        val dateText = SimpleDateFormat("MM月dd日", Locale.CHINA).format(Date(timestamp))
+        _uiState.update { it.copy(dateText = dateText) }
     }
 
     fun appendNumber(number: String) {
@@ -104,19 +179,60 @@ class RecordViewModel @Inject constructor(
         viewModelScope.launch {
             val state = _uiState.value
             val amount = state.amountText.toDoubleOrNull() ?: return@launch
+            val categoryId = state.selectedCategoryId ?: return@launch
 
-            // TODO: 保存到数据库
-            // transactionRepository.addTransaction(...)
+            _uiState.update { it.copy(isLoading = true) }
 
-            // 重置状态
-            _uiState.update {
-                it.copy(
-                    amountText = "",
-                    selectedCategoryId = null,
-                    note = ""
+            try {
+                val transactionType = when (state.transactionType) {
+                    0 -> TransactionType.EXPENSE
+                    1 -> TransactionType.INCOME
+                    else -> TransactionType.TRANSFER
+                }
+
+                val transaction = TransactionEntity(
+                    type = transactionType,
+                    amount = amount,
+                    categoryId = categoryId,
+                    accountId = selectedAccountId,
+                    note = state.note,
+                    date = selectedDate,
+                    createdAt = System.currentTimeMillis(),
+                    updatedAt = System.currentTimeMillis()
                 )
+
+                transactionRepository.insertTransaction(transaction)
+
+                // 更新账户余额
+                if (transactionType == TransactionType.EXPENSE) {
+                    accountRepository.incrementBalance(selectedAccountId, -amount)
+                } else if (transactionType == TransactionType.INCOME) {
+                    accountRepository.incrementBalance(selectedAccountId, amount)
+                }
+
+                // 重置状态
+                _uiState.update {
+                    it.copy(
+                        amountText = "",
+                        selectedCategoryId = null,
+                        note = "",
+                        isLoading = false,
+                        saveSuccess = true
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = e.message
+                    )
+                }
             }
         }
+    }
+
+    fun clearSaveSuccess() {
+        _uiState.update { it.copy(saveSuccess = false) }
     }
 
     private fun updateCanSave() {
@@ -128,26 +244,26 @@ class RecordViewModel @Inject constructor(
 
     private fun getDefaultExpenseCategories(): List<CategoryUiModel> {
         return listOf(
-            CategoryUiModel(1, "餐饮美食", "\uD83C\uDF5C", "#FFF3E0"),
-            CategoryUiModel(2, "交通出行", "\uD83D\uDE87", "#E3F2FD"),
-            CategoryUiModel(3, "购物消费", "\uD83D\uDED2", "#FCE4EC"),
-            CategoryUiModel(4, "娱乐休闲", "\uD83C\uDFAC", "#F3E5F5"),
-            CategoryUiModel(5, "居住生活", "\uD83C\uDFE0", "#E8F5E9"),
-            CategoryUiModel(6, "医疗健康", "\uD83D\uDC8A", "#FFF8E1"),
-            CategoryUiModel(7, "教育学习", "\uD83D\uDCDA", "#E0F7FA"),
-            CategoryUiModel(8, "人情往来", "\uD83C\uDF81", "#FFEBEE"),
-            CategoryUiModel(9, "金融保险", "\uD83C\uDFE6", "#E8EAF6"),
-            CategoryUiModel(10, "其他支出", "\uD83D\uDCDD", "#ECEFF1")
+            CategoryUiModel(1, "餐饮美食", "🍜", "#FFF3E0"),
+            CategoryUiModel(2, "交通出行", "🚗", "#E3F2FD"),
+            CategoryUiModel(3, "购物消费", "🛒", "#FCE4EC"),
+            CategoryUiModel(4, "娱乐休闲", "🎮", "#F3E5F5"),
+            CategoryUiModel(5, "居住生活", "🏠", "#E8F5E9"),
+            CategoryUiModel(6, "医疗健康", "💊", "#FFF8E1"),
+            CategoryUiModel(7, "教育学习", "📚", "#E0F7FA"),
+            CategoryUiModel(8, "人情往来", "🎁", "#FFEBEE"),
+            CategoryUiModel(9, "通讯网络", "📱", "#E8EAF6"),
+            CategoryUiModel(10, "其他支出", "📦", "#ECEFF1")
         )
     }
 
     private fun getDefaultIncomeCategories(): List<CategoryUiModel> {
         return listOf(
-            CategoryUiModel(11, "工资薪酬", "\uD83D\uDCB0", "#E8F5E9"),
-            CategoryUiModel(12, "奖金收入", "\uD83C\uDF96", "#FFF8E1"),
-            CategoryUiModel(13, "投资收益", "\uD83D\uDCC8", "#E3F2FD"),
-            CategoryUiModel(14, "兼职收入", "\uD83D\uDCBC", "#F3E5F5"),
-            CategoryUiModel(15, "其他收入", "\uD83D\uDCB5", "#ECEFF1")
+            CategoryUiModel(11, "工资薪酬", "💰", "#E8F5E9"),
+            CategoryUiModel(12, "奖金收入", "🏆", "#FFF8E1"),
+            CategoryUiModel(13, "投资收益", "📈", "#E3F2FD"),
+            CategoryUiModel(14, "兼职收入", "💼", "#F3E5F5"),
+            CategoryUiModel(15, "其他收入", "💵", "#ECEFF1")
         )
     }
 }
@@ -160,10 +276,18 @@ data class RecordUiState(
     val amountText: String = "",
     val selectedCategoryId: Long? = null,
     val categories: List<CategoryUiModel> = emptyList(),
+    val accounts: List<AccountUiModel> = emptyList(),
     val dateText: String = "",
     val accountName: String = "",
     val note: String = "",
     val canSave: Boolean = false,
     val isLoading: Boolean = false,
+    val saveSuccess: Boolean = false,
     val errorMessage: String? = null
+)
+
+data class AccountUiModel(
+    val id: Long,
+    val name: String,
+    val icon: String
 )

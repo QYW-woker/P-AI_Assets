@@ -16,13 +16,13 @@ import kotlinx.coroutines.flow.Flow
 interface BudgetDao {
 
     @Query("SELECT * FROM budgets WHERE isActive = 1")
-    fun getAllBudgets(): Flow<List<BudgetEntity>>
+    fun getAllActiveBudgets(): Flow<List<BudgetEntity>>
 
     @Query("SELECT * FROM budgets WHERE categoryId IS NULL AND isActive = 1 LIMIT 1")
     fun getTotalBudget(): Flow<BudgetEntity?>
 
-    @Query("SELECT * FROM budgets WHERE categoryId = :categoryId AND isActive = 1")
-    fun getBudgetByCategory(categoryId: Long): Flow<BudgetEntity?>
+    @Query("SELECT * FROM budgets WHERE categoryId = :categoryId AND isActive = 1 LIMIT 1")
+    suspend fun getBudgetByCategory(categoryId: Long): BudgetEntity?
 
     @Query("SELECT * FROM budgets WHERE categoryId IS NOT NULL AND isActive = 1")
     fun getCategoryBudgets(): Flow<List<BudgetEntity>>
@@ -45,6 +45,9 @@ interface BudgetDao {
     @Delete
     suspend fun delete(budget: BudgetEntity)
 
+    @Query("SELECT * FROM budgets ORDER BY id")
+    suspend fun getAllBudgetsForBackup(): List<BudgetEntity>
+
     @Query("DELETE FROM budgets")
-    suspend fun deleteAll()
+    suspend fun clearAll()
 }

@@ -60,4 +60,22 @@ interface AccountDao {
 
     @Query("SELECT COUNT(*) FROM accounts WHERE isActive = 1")
     suspend fun getAccountCount(): Int
+
+    @Query("SELECT COUNT(*) FROM accounts WHERE type = :type AND isActive = 1")
+    suspend fun getAccountCountByType(type: AccountType): Int
+
+    @Query("SELECT * FROM accounts WHERE isActive = 1 ORDER BY sortOrder")
+    fun getAllActiveAccounts(): Flow<List<AccountEntity>>
+
+    @Query("SELECT * FROM accounts WHERE type = :type AND isActive = 1 ORDER BY sortOrder")
+    fun getAccountsByType(type: AccountType): Flow<List<AccountEntity>>
+
+    @Query("UPDATE accounts SET balance = balance + :delta WHERE id = :accountId")
+    suspend fun incrementBalance(accountId: Long, delta: Double)
+
+    @Query("SELECT * FROM accounts ORDER BY sortOrder")
+    suspend fun getAllAccountsForBackup(): List<AccountEntity>
+
+    @Query("DELETE FROM accounts")
+    suspend fun clearAll()
 }
