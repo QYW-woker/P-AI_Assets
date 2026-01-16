@@ -48,6 +48,7 @@ import com.example.smartledger.presentation.ui.components.AppCard
 import com.example.smartledger.presentation.ui.components.AppCardSmall
 import com.example.smartledger.presentation.ui.components.GradientCard
 import com.example.smartledger.presentation.ui.components.NoTransactionsState
+import com.example.smartledger.utils.toColor
 import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
@@ -540,7 +541,7 @@ private fun TransactionItem(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(transaction.categoryColor))),
+                        .background(transaction.categoryColor.toColor()),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

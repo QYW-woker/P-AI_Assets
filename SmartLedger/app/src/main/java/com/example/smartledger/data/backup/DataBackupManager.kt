@@ -1,6 +1,11 @@
 package com.example.smartledger.data.backup
 
 import android.content.Context
+import com.example.smartledger.data.local.entity.BudgetEntity
+import com.example.smartledger.data.local.entity.BudgetPeriod
+import com.example.smartledger.data.local.entity.GoalEntity
+import com.example.smartledger.data.local.entity.TransactionEntity
+import com.example.smartledger.data.local.entity.TransactionType
 import com.example.smartledger.domain.repository.AccountRepository
 import com.example.smartledger.domain.repository.BudgetRepository
 import com.example.smartledger.domain.repository.CategoryRepository
@@ -292,6 +297,11 @@ class DataBackupManager @Inject constructor(
                 return BackupResult.Error("备份文件不存在")
             }
 
+            // 检查文件大小，防止OOM（限制50MB）
+            if (file.length() > 50 * 1024 * 1024) {
+                return BackupResult.Error("备份文件过大，无法恢复")
+            }
+
             val jsonContent = file.readText()
             val json = JSONObject(jsonContent)
 
@@ -301,8 +311,66 @@ class DataBackupManager @Inject constructor(
                 return BackupResult.Error("备份版本过高，请更新应用后再恢复")
             }
 
-            // 这里只是返回成功，实际的恢复逻辑需要更复杂的处理
-            // 包括清除现有数据、插入备份数据等
+            // 清除现有数据
+            clearAllData()
+
+            // 恢复交易记录
+            val transactionsArray = json.optJSONArray("transactions") ?: JSONArray()
+            for (i in 0 until transactionsArray.length()) {
+                val txJson = transactionsArray.getJSONObject(i)
+                val transaction = TransactionEntity(
+                    id = txJson.optLong("id", 0),
+                    type = TransactionType.valueOf(txJson.optString("type", "EXPENSE")),
+                    amount = txJson.optDouble("amount", 0.0),
+                    categoryId = txJson.optLong("categoryId", 0),
+                    accountId = txJson.optLong("accountId", 0),
+                    toAccountId = if (txJson.has("toAccountId") && !txJson.isNull("toAccountId"))
+                        txJson.optLong("toAccountId") else null,
+                    note = txJson.optString("note", ""),
+                    tags = txJson.optString("tags", ""),
+                    date = txJson.optLong("date", System.currentTimeMillis()),
+                    createdAt = txJson.optLong("createdAt", System.currentTimeMillis()),
+                    updatedAt = txJson.optLong("updatedAt", System.currentTimeMillis())
+                )
+                transactionRepository.insertTransaction(transaction)
+            }
+
+            // 恢复预算
+            val budgetsArray = json.optJSONArray("budgets") ?: JSONArray()
+            for (i in 0 until budgetsArray.length()) {
+                val budgetJson = budgetsArray.getJSONObject(i)
+                val budget = BudgetEntity(
+                    id = budgetJson.optLong("id", 0),
+                    categoryId = if (budgetJson.has("categoryId") && !budgetJson.isNull("categoryId"))
+                        budgetJson.optLong("categoryId") else null,
+                    amount = budgetJson.optDouble("amount", 0.0),
+                    period = BudgetPeriod.valueOf(budgetJson.optString("period", "MONTHLY")),
+                    startDate = budgetJson.optLong("startDate", System.currentTimeMillis()),
+                    alertThreshold = budgetJson.optDouble("alertThreshold", 0.8).toFloat(),
+                    isActive = budgetJson.optBoolean("isActive", true)
+                )
+                budgetRepository.insertBudget(budget)
+            }
+
+            // 恢复目标
+            val goalsArray = json.optJSONArray("goals") ?: JSONArray()
+            for (i in 0 until goalsArray.length()) {
+                val goalJson = goalsArray.getJSONObject(i)
+                val goal = GoalEntity(
+                    id = goalJson.optLong("id", 0),
+                    name = goalJson.optString("name", ""),
+                    icon = goalJson.optString("icon", "🎯"),
+                    targetAmount = goalJson.optDouble("targetAmount", 0.0),
+                    currentAmount = goalJson.optDouble("currentAmount", 0.0),
+                    deadline = if (goalJson.has("deadline") && !goalJson.isNull("deadline"))
+                        goalJson.optLong("deadline") else null,
+                    note = goalJson.optString("note", ""),
+                    createdAt = goalJson.optLong("createdAt", System.currentTimeMillis()),
+                    isCompleted = goalJson.optBoolean("isCompleted", false)
+                )
+                goalRepository.insertGoal(goal)
+            }
+
             BackupResult.Success(filePath, file.length())
         } catch (e: Exception) {
             BackupResult.Error(e.message ?: "恢复失败")

@@ -57,9 +57,11 @@ class HomeViewModel @Inject constructor(
                 calendar.add(Calendar.MONTH, 1)
                 val monthEnd = calendar.timeInMillis
 
-                // 计算剩余天数
+                // 计算剩余天数（修复：使用当月最后一天减去今天）
                 val today = Calendar.getInstance()
-                val daysRemaining = calendar.get(Calendar.DAY_OF_MONTH) - today.get(Calendar.DAY_OF_MONTH)
+                val lastDayOfMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val currentDay = today.get(Calendar.DAY_OF_MONTH)
+                val daysRemaining = lastDayOfMonth - currentDay + 1 // +1 包含今天
 
                 // 获取总资产
                 val totalAssets = accountRepository.getTotalBalance().first()

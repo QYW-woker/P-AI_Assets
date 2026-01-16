@@ -51,12 +51,11 @@ class BudgetViewModel @Inject constructor(
                 calendar.add(Calendar.MONTH, 1)
                 val monthEnd = calendar.timeInMillis
 
-                // 计算剩余天数
+                // 计算剩余天数（使用当月最后一天减去今天）
                 val today = Calendar.getInstance()
-                calendar.add(Calendar.MONTH, -1)
-                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
-                val daysInMonth = calendar.get(Calendar.DAY_OF_MONTH)
-                val daysRemaining = daysInMonth - today.get(Calendar.DAY_OF_MONTH) + 1
+                val lastDayOfMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
+                val currentDay = today.get(Calendar.DAY_OF_MONTH)
+                val daysRemaining = lastDayOfMonth - currentDay + 1 // +1 包含今天
 
                 // 获取本月总支出
                 val monthlyExpense = transactionRepository.getTotalByDateRange(
@@ -87,13 +86,19 @@ class BudgetViewModel @Inject constructor(
                     null
                 }
 
+                // 获取分类汇总用于计算各分类实际支出
+                val categorySummary = transactionRepository.getCategorySummary(
+                    TransactionType.EXPENSE, monthStart, monthEnd
+                )
+                val categoryExpenseMap = categorySummary.associateBy { it.categoryId }
+
                 // 获取分类预算
                 val categoryBudgets = budgetRepository.getCategoryBudgets().first()
                 val budgetModels = categoryBudgets.mapNotNull { budget ->
                     val category = budget.categoryId?.let { categoryRepository.getCategoryById(it) }
                     if (category != null) {
-                        // 简化：使用总支出的比例作为分类支出（实际应该按分类查询）
-                        val categoryUsed = monthlyExpense * 0.25 // 简化计算
+                        // 使用实际分类支出
+                        val categoryUsed = categoryExpenseMap[category.id]?.totalAmount ?: 0.0
                         val remaining = budget.amount - categoryUsed
                         val dailyAvailable = if (daysRemaining > 0 && remaining > 0) {
                             remaining / daysRemaining

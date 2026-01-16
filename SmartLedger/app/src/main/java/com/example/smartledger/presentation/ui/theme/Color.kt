@@ -100,3 +100,18 @@ object DarkColors {
     val TextSecondary = Color(0xFFB0B0B0)
     val TextMuted = Color(0xFF808080)
 }
+
+/**
+ * 安全的颜色解析函数
+ * 如果颜色字符串无效，返回默认颜色
+ */
+fun parseColorSafe(colorString: String?, defaultColor: Color = AppColors.CategoryColors.last()): Color {
+    if (colorString.isNullOrBlank()) {
+        return defaultColor
+    }
+    return try {
+        Color(android.graphics.Color.parseColor(colorString))
+    } catch (e: IllegalArgumentException) {
+        defaultColor
+    }
+}

@@ -40,6 +40,7 @@ import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import com.example.smartledger.utils.toColor
 
 /**
  * 预算页面
@@ -254,7 +255,7 @@ private fun CategoryBudgetItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(android.graphics.Color.parseColor(budget.categoryColor ?: "#ECEFF1"))),
+                    .background((budget.categoryColor ?: "#ECEFF1").toColor()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(

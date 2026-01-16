@@ -54,6 +54,7 @@ import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import com.example.smartledger.utils.toColor
 
 /**
  * 记账页面
@@ -254,7 +255,7 @@ private fun CategoryItem(
             modifier = Modifier
                 .size(40.dp)
                 .clip(CircleShape)
-                .background(Color(android.graphics.Color.parseColor(category.color)))
+                .background(category.color.toColor())
                 .border(
                     width = 2.dp,
                     color = borderColor,

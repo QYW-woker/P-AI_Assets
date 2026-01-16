@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -31,7 +32,7 @@ class SettingsDataStore @Inject constructor(
         val IS_DAILY_REMINDER_ENABLED = booleanPreferencesKey("is_daily_reminder_enabled")
         val REMINDER_TIME = stringPreferencesKey("reminder_time")
         val IS_BUDGET_ALERT_ENABLED = booleanPreferencesKey("is_budget_alert_enabled")
-        val DEFAULT_ACCOUNT_ID = intPreferencesKey("default_account_id")
+        val DEFAULT_ACCOUNT_ID = longPreferencesKey("default_account_id")
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
         val LAST_BACKUP_TIME = stringPreferencesKey("last_backup_time")
     }
@@ -48,7 +49,7 @@ class SettingsDataStore @Inject constructor(
             isDailyReminderEnabled = preferences[PreferencesKeys.IS_DAILY_REMINDER_ENABLED] ?: false,
             reminderTime = preferences[PreferencesKeys.REMINDER_TIME] ?: "21:00",
             isBudgetAlertEnabled = preferences[PreferencesKeys.IS_BUDGET_ALERT_ENABLED] ?: true,
-            defaultAccountId = preferences[PreferencesKeys.DEFAULT_ACCOUNT_ID] ?: 0,
+            defaultAccountId = preferences[PreferencesKeys.DEFAULT_ACCOUNT_ID] ?: 0L,
             isFirstLaunch = preferences[PreferencesKeys.IS_FIRST_LAUNCH] ?: true,
             lastBackupTime = preferences[PreferencesKeys.LAST_BACKUP_TIME]
         )
@@ -120,7 +121,7 @@ class SettingsDataStore @Inject constructor(
     /**
      * 设置默认账户
      */
-    suspend fun setDefaultAccountId(accountId: Int) {
+    suspend fun setDefaultAccountId(accountId: Long) {
         context.dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEFAULT_ACCOUNT_ID] = accountId
         }
@@ -165,7 +166,7 @@ data class AppSettings(
     val isDailyReminderEnabled: Boolean = false,
     val reminderTime: String = "21:00",
     val isBudgetAlertEnabled: Boolean = true,
-    val defaultAccountId: Int = 0,
+    val defaultAccountId: Long = 0L,
     val isFirstLaunch: Boolean = true,
     val lastBackupTime: String? = null
 )

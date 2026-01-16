@@ -45,6 +45,7 @@ import com.example.smartledger.presentation.ui.components.AppTopBarWithBack
 import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import com.example.smartledger.utils.toColor
 
 /**
  * 交易列表页面
@@ -326,7 +327,7 @@ private fun TransactionItemCard(
     onDelete: () -> Unit
 ) {
     val categoryColor = try {
-        Color(android.graphics.Color.parseColor(transaction.categoryColor))
+        transaction.categoryColor.toColor()
     } catch (e: Exception) {
         AppColors.Primary
     }
