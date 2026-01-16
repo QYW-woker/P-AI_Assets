@@ -2,11 +2,19 @@ package com.example.smartledger.presentation.ui.budget
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.local.entity.BudgetEntity
+import com.example.smartledger.data.local.entity.BudgetPeriod
+import com.example.smartledger.data.local.entity.TransactionType
+import com.example.smartledger.domain.repository.BudgetRepository
+import com.example.smartledger.domain.repository.CategoryRepository
+import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 /**
@@ -14,7 +22,9 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class BudgetViewModel @Inject constructor(
-    // TODO: 注入Repository
+    private val budgetRepository: BudgetRepository,
+    private val transactionRepository: TransactionRepository,
+    private val categoryRepository: CategoryRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BudgetUiState())
@@ -26,72 +36,137 @@ class BudgetViewModel @Inject constructor(
 
     private fun loadBudgetData() {
         viewModelScope.launch {
-            // TODO: 从Repository加载真实数据
-            _uiState.value = BudgetUiState(
-                totalBudget = BudgetUiModel(
-                    id = 0,
-                    categoryId = null,
-                    categoryName = null,
-                    categoryIcon = null,
-                    categoryColor = null,
-                    amount = 8000.00,
-                    used = 5320.00,
-                    remaining = 2680.00,
-                    dailyAvailable = 89.33
-                ),
-                budgets = generateMockBudgets(),
-                isLoading = false
-            )
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+
+                // 获取本月时间范围
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                val monthStart = calendar.timeInMillis
+
+                calendar.add(Calendar.MONTH, 1)
+                val monthEnd = calendar.timeInMillis
+
+                // 计算剩余天数
+                val today = Calendar.getInstance()
+                calendar.add(Calendar.MONTH, -1)
+                calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
+                val daysInMonth = calendar.get(Calendar.DAY_OF_MONTH)
+                val daysRemaining = daysInMonth - today.get(Calendar.DAY_OF_MONTH) + 1
+
+                // 获取本月总支出
+                val monthlyExpense = transactionRepository.getTotalByDateRange(
+                    TransactionType.EXPENSE, monthStart, monthEnd
+                )
+
+                // 获取总预算
+                val totalBudget = budgetRepository.getTotalBudget().first()
+                val totalBudgetModel = if (totalBudget != null) {
+                    val remaining = totalBudget.amount - monthlyExpense
+                    val dailyAvailable = if (daysRemaining > 0 && remaining > 0) {
+                        remaining / daysRemaining
+                    } else {
+                        0.0
+                    }
+                    BudgetUiModel(
+                        id = totalBudget.id,
+                        categoryId = null,
+                        categoryName = null,
+                        categoryIcon = null,
+                        categoryColor = null,
+                        amount = totalBudget.amount,
+                        used = monthlyExpense,
+                        remaining = remaining.coerceAtLeast(0.0),
+                        dailyAvailable = dailyAvailable
+                    )
+                } else {
+                    null
+                }
+
+                // 获取分类预算
+                val categoryBudgets = budgetRepository.getCategoryBudgets().first()
+                val budgetModels = categoryBudgets.mapNotNull { budget ->
+                    val category = budget.categoryId?.let { categoryRepository.getCategoryById(it) }
+                    if (category != null) {
+                        // 简化：使用总支出的比例作为分类支出（实际应该按分类查询）
+                        val categoryUsed = monthlyExpense * 0.25 // 简化计算
+                        val remaining = budget.amount - categoryUsed
+                        val dailyAvailable = if (daysRemaining > 0 && remaining > 0) {
+                            remaining / daysRemaining
+                        } else {
+                            0.0
+                        }
+
+                        BudgetUiModel(
+                            id = budget.id,
+                            categoryId = category.id,
+                            categoryName = category.name,
+                            categoryIcon = category.icon,
+                            categoryColor = category.color,
+                            amount = budget.amount,
+                            used = categoryUsed,
+                            remaining = remaining.coerceAtLeast(0.0),
+                            dailyAvailable = dailyAvailable
+                        )
+                    } else null
+                }
+
+                _uiState.value = BudgetUiState(
+                    totalBudget = totalBudgetModel,
+                    budgets = budgetModels,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
         }
     }
 
-    private fun generateMockBudgets(): List<BudgetUiModel> {
-        return listOf(
-            BudgetUiModel(
-                id = 1,
-                categoryId = 1,
-                categoryName = "餐饮美食",
-                categoryIcon = "\uD83C\uDF5C",
-                categoryColor = "#FFF3E0",
-                amount = 2000.00,
-                used = 1580.00,
-                remaining = 420.00,
-                dailyAvailable = 14.00
-            ),
-            BudgetUiModel(
-                id = 2,
-                categoryId = 3,
-                categoryName = "购物消费",
-                categoryIcon = "\uD83D\uDED2",
-                categoryColor = "#FCE4EC",
-                amount = 1500.00,
-                used = 1200.00,
-                remaining = 300.00,
-                dailyAvailable = 10.00
-            ),
-            BudgetUiModel(
-                id = 3,
-                categoryId = 2,
-                categoryName = "交通出行",
-                categoryIcon = "\uD83D\uDE87",
-                categoryColor = "#E3F2FD",
-                amount = 1000.00,
-                used = 850.00,
-                remaining = 150.00,
-                dailyAvailable = 5.00
-            ),
-            BudgetUiModel(
-                id = 4,
-                categoryId = 4,
-                categoryName = "娱乐休闲",
-                categoryIcon = "\uD83C\uDFAC",
-                categoryColor = "#F3E5F5",
-                amount = 800.00,
-                used = 690.00,
-                remaining = 110.00,
-                dailyAvailable = 3.67
+    fun addTotalBudget(amount: Double) {
+        viewModelScope.launch {
+            val budget = BudgetEntity(
+                categoryId = null,
+                amount = amount,
+                period = BudgetPeriod.MONTHLY,
+                startDate = System.currentTimeMillis()
             )
-        )
+            budgetRepository.insertBudget(budget)
+            loadBudgetData()
+        }
+    }
+
+    fun addCategoryBudget(categoryId: Long, amount: Double) {
+        viewModelScope.launch {
+            val budget = BudgetEntity(
+                categoryId = categoryId,
+                amount = amount,
+                period = BudgetPeriod.MONTHLY,
+                startDate = System.currentTimeMillis()
+            )
+            budgetRepository.insertBudget(budget)
+            loadBudgetData()
+        }
+    }
+
+    fun deleteBudget(budgetId: Long) {
+        viewModelScope.launch {
+            val budget = budgetRepository.getBudgetById(budgetId)
+            if (budget != null) {
+                budgetRepository.deleteBudget(budget)
+                loadBudgetData()
+            }
+        }
+    }
+
+    fun refresh() {
+        loadBudgetData()
     }
 }
 

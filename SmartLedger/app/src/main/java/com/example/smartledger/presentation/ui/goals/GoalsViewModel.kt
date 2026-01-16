@@ -2,11 +2,17 @@ package com.example.smartledger.presentation.ui.goals
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.local.entity.GoalEntity
+import com.example.smartledger.domain.repository.GoalRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 /**
@@ -14,11 +20,13 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class GoalsViewModel @Inject constructor(
-    // TODO: 注入Repository
+    private val goalRepository: GoalRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GoalsUiState())
     val uiState: StateFlow<GoalsUiState> = _uiState.asStateFlow()
+
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     init {
         loadGoalsData()
@@ -26,47 +34,109 @@ class GoalsViewModel @Inject constructor(
 
     private fun loadGoalsData() {
         viewModelScope.launch {
-            // TODO: 从Repository加载真实数据
-            _uiState.value = GoalsUiState(
-                goals = generateMockGoals(),
-                isLoading = false
-            )
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+
+                val goals = goalRepository.getActiveGoals().first()
+                val goalModels = goals.map { goal ->
+                    val progress = if (goal.targetAmount > 0) {
+                        (goal.currentAmount / goal.targetAmount).toFloat().coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+
+                    // 估算完成日期
+                    val estimatedCompletion = calculateEstimatedCompletion(goal)
+
+                    GoalUiModel(
+                        id = goal.id,
+                        name = goal.name,
+                        icon = goal.icon,
+                        targetAmount = goal.targetAmount,
+                        currentAmount = goal.currentAmount,
+                        progress = progress,
+                        deadline = goal.deadline?.let { dateFormat.format(Date(it)) },
+                        estimatedCompletion = estimatedCompletion,
+                        note = goal.note
+                    )
+                }
+
+                _uiState.value = GoalsUiState(
+                    goals = goalModels,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
         }
     }
 
-    private fun generateMockGoals(): List<GoalUiModel> {
-        return listOf(
-            GoalUiModel(
-                id = 1,
-                name = "旅行基金",
-                icon = "\u2708\uFE0F",
-                targetAmount = 20000.00,
-                currentAmount = 8500.00,
-                deadline = "2025-06-30",
-                estimatedCompletion = "2025-05-15",
-                note = "计划去日本旅行"
-            ),
-            GoalUiModel(
-                id = 2,
-                name = "应急资金",
-                icon = "\uD83D\uDEE1\uFE0F",
-                targetAmount = 50000.00,
-                currentAmount = 32000.00,
-                deadline = null,
-                estimatedCompletion = "2025-08-20",
-                note = "6个月生活费储备"
-            ),
-            GoalUiModel(
-                id = 3,
-                name = "新电脑",
-                icon = "\uD83D\uDCBB",
-                targetAmount = 12000.00,
-                currentAmount = 4800.00,
-                deadline = "2025-03-31",
-                estimatedCompletion = "2025-04-10",
-                note = "MacBook Pro"
+    private fun calculateEstimatedCompletion(goal: GoalEntity): String? {
+        if (goal.currentAmount >= goal.targetAmount) {
+            return "已完成"
+        }
+
+        val createdAt = goal.createdAt
+        val now = System.currentTimeMillis()
+        val daysPassed = ((now - createdAt) / (1000 * 60 * 60 * 24)).toInt()
+
+        if (daysPassed <= 0 || goal.currentAmount <= 0) {
+            return null
+        }
+
+        val dailyRate = goal.currentAmount / daysPassed
+        val remaining = goal.targetAmount - goal.currentAmount
+        val daysNeeded = (remaining / dailyRate).toLong()
+
+        val completionDate = Date(now + daysNeeded * 24 * 60 * 60 * 1000)
+        return dateFormat.format(completionDate)
+    }
+
+    fun addGoal(name: String, icon: String, targetAmount: Double, deadline: Long?, note: String) {
+        viewModelScope.launch {
+            val goal = GoalEntity(
+                name = name,
+                icon = icon,
+                targetAmount = targetAmount,
+                currentAmount = 0.0,
+                deadline = deadline,
+                note = note,
+                createdAt = System.currentTimeMillis()
             )
-        )
+            goalRepository.insertGoal(goal)
+            loadGoalsData()
+        }
+    }
+
+    fun addToGoal(goalId: Long, amount: Double) {
+        viewModelScope.launch {
+            goalRepository.addToCurrentAmount(goalId, amount)
+
+            // 检查是否达成目标
+            val goal = goalRepository.getGoalById(goalId)
+            if (goal != null && goal.currentAmount >= goal.targetAmount) {
+                goalRepository.markGoalCompleted(goalId)
+            }
+
+            loadGoalsData()
+        }
+    }
+
+    fun deleteGoal(goalId: Long) {
+        viewModelScope.launch {
+            val goal = goalRepository.getGoalById(goalId)
+            if (goal != null) {
+                goalRepository.deleteGoal(goal)
+                loadGoalsData()
+            }
+        }
+    }
+
+    fun refresh() {
+        loadGoalsData()
     }
 }
 
