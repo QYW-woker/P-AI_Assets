@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">智能记账</string>
+
+    <!-- 底部导航 -->
+    <string name="nav_home">首页</string>
+    <string name="nav_stats">统计</string>
+    <string name="nav_record">记账</string>
+    <string name="nav_assets">资产</string>
+    <string name="nav_profile">我的</string>
+
+    <!-- 首页 -->
+    <string name="total_assets">总资产</string>
+    <string name="monthly_income">本月收入</string>
+    <string name="monthly_expense">本月支出</string>
+    <string name="monthly_balance">本月结余</string>
+    <string name="budget_progress">预算进度</string>
+    <string name="recent_transactions">近期账目</string>
+    <string name="view_all">全部</string>
+    <string name="daily_available">日均可用</string>
+
+    <!-- 记账 -->
+    <string name="expense">支出</string>
+    <string name="income">收入</string>
+    <string name="transfer">转账</string>
+    <string name="amount">金额</string>
+    <string name="category">分类</string>
+    <string name="account">账户</string>
+    <string name="note">备注</string>
+    <string name="date">日期</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+    <string name="confirm">确认</string>
+
+    <!-- 快捷操作 -->
+    <string name="quick_expense">支出</string>
+    <string name="quick_income">收入</string>
+    <string name="quick_transfer">转账</string>
+    <string name="quick_ai">AI记账</string>
+
+    <!-- 统计 -->
+    <string name="week">周</string>
+    <string name="month">月</string>
+    <string name="quarter">季</string>
+    <string name="year">年</string>
+    <string name="all">全部</string>
+    <string name="custom">自定义</string>
+    <string name="category_ranking">分类排行</string>
+
+    <!-- 资产 -->
+    <string name="assets">资产</string>
+    <string name="income_expense">收支</string>
+    <string name="investment">投资</string>
+    <string name="health_score">财务健康分</string>
+    <string name="savings_rate">储蓄率</string>
+
+    <!-- 预算 -->
+    <string name="total_budget">总预算</string>
+    <string name="category_budget">分类预算</string>
+    <string name="add_budget">添加预算</string>
+    <string name="used">已用</string>
+    <string name="remaining">剩余</string>
+
+    <!-- 目标 -->
+    <string name="savings_goals">储蓄目标</string>
+    <string name="add_goal">添加目标</string>
+    <string name="target_amount">目标金额</string>
+    <string name="current_amount">当前金额</string>
+    <string name="deadline">截止日期</string>
+
+    <!-- AI助手 -->
+    <string name="ai_assistant">AI助手</string>
+    <string name="input_hint">说点什么，如"午餐花了35元"</string>
+    <string name="send">发送</string>
+
+    <!-- 设置 -->
+    <string name="settings">设置</string>
+    <string name="currency">货币单位</string>
+    <string name="month_start_day">每月起始日</string>
+    <string name="week_start_day">每周起始日</string>
+    <string name="dark_mode">深色模式</string>
+    <string name="daily_reminder">每日记账提醒</string>
+    <string name="budget_alert">预算超支提醒</string>
+    <string name="app_lock">应用锁</string>
+
+    <!-- 备份 -->
+    <string name="backup">备份与恢复</string>
+    <string name="backup_now">立即备份</string>
+    <string name="restore">恢复数据</string>
+    <string name="export_json">导出JSON</string>
+    <string name="export_csv">导出CSV</string>
+    <string name="export_excel">导出Excel</string>
+    <string name="clear_data">清除所有数据</string>
+    <string name="last_backup">上次备份</string>
+
+    <!-- 通用 -->
+    <string name="loading">加载中...</string>
+    <string name="empty_data">暂无数据</string>
+    <string name="error">出错了</string>
+    <string name="retry">重试</string>
+    <string name="success">成功</string>
+    <string name="failed">失败</string>
+    <string name="delete">删除</string>
+    <string name="edit">编辑</string>
+    <string name="more">更多</string>
+
+    <!-- 货币 -->
+    <string name="currency_cny">CNY ¥</string>
+    <string name="currency_usd">USD $</string>
+    <string name="currency_eur">EUR €</string>
+</resources>
