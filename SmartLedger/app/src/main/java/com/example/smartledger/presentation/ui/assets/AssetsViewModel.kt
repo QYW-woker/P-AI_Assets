@@ -2,11 +2,16 @@ package com.example.smartledger.presentation.ui.assets
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.local.entity.TransactionType
+import com.example.smartledger.domain.repository.AccountRepository
+import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 /**
@@ -14,7 +19,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class AssetsViewModel @Inject constructor(
-    // TODO: 注入Repository
+    private val accountRepository: AccountRepository,
+    private val transactionRepository: TransactionRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AssetsUiState())
@@ -26,58 +32,125 @@ class AssetsViewModel @Inject constructor(
 
     private fun loadAssetsData() {
         viewModelScope.launch {
-            // TODO: 从Repository加载真实数据
-            _uiState.value = AssetsUiState(
-                totalAssets = 128650.00,
-                healthScore = 78,
-                accounts = generateMockAccounts(),
-                monthlyIncome = 15000.00,
-                monthlyExpense = 5320.00,
-                savingsRate = 0.645f,
-                investmentPrincipal = 50000.00,
-                investmentCurrentValue = 52800.00,
-                investmentReturn = 2800.00,
-                investmentReturnRate = 0.056f,
-                isLoading = false
-            )
+            try {
+                _uiState.value = _uiState.value.copy(isLoading = true)
+
+                // 获取本月时间范围
+                val calendar = Calendar.getInstance()
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+                val monthStart = calendar.timeInMillis
+                calendar.add(Calendar.MONTH, 1)
+                val monthEnd = calendar.timeInMillis
+
+                // 获取总资产
+                val totalAssets = accountRepository.getTotalBalance().first()
+
+                // 获取所有账户
+                val accounts = accountRepository.getAllActiveAccounts().first()
+                val accountModels = accounts.map { account ->
+                    val typeName = when (account.type.name) {
+                        "CASH" -> "现金"
+                        "DEBIT_CARD" -> "储蓄卡"
+                        "CREDIT_CARD" -> "信用卡"
+                        "ALIPAY" -> "支付宝"
+                        "WECHAT" -> "微信"
+                        "INVESTMENT_STOCK" -> "股票"
+                        "INVESTMENT_FUND" -> "基金"
+                        "INVESTMENT_DEPOSIT" -> "定期存款"
+                        else -> "其他"
+                    }
+                    AccountUiModel(
+                        id = account.id,
+                        name = account.name,
+                        icon = account.icon,
+                        color = account.color,
+                        typeName = typeName,
+                        balance = account.balance
+                    )
+                }
+
+                // 获取本月收支
+                val monthlyIncome = transactionRepository.getTotalByDateRange(
+                    TransactionType.INCOME, monthStart, monthEnd
+                )
+                val monthlyExpense = transactionRepository.getTotalByDateRange(
+                    TransactionType.EXPENSE, monthStart, monthEnd
+                )
+
+                // 计算储蓄率
+                val savingsRate = if (monthlyIncome > 0) {
+                    ((monthlyIncome - monthlyExpense) / monthlyIncome).toFloat().coerceIn(0f, 1f)
+                } else {
+                    0f
+                }
+
+                // 计算投资收益（基于投资类账户）
+                val investmentAccounts = accounts.filter {
+                    it.type.name.startsWith("INVESTMENT")
+                }
+                val investmentCurrentValue = investmentAccounts.sumOf { it.balance }
+                val investmentPrincipal = investmentAccounts.sumOf { it.initialBalance }
+                val investmentReturn = investmentCurrentValue - investmentPrincipal
+                val investmentReturnRate = if (investmentPrincipal > 0) {
+                    (investmentReturn / investmentPrincipal).toFloat()
+                } else {
+                    0f
+                }
+
+                // 计算健康评分（简化算法）
+                val healthScore = calculateHealthScore(
+                    savingsRate = savingsRate,
+                    hasEmergencyFund = totalAssets > monthlyExpense * 3,
+                    investmentReturnRate = investmentReturnRate
+                )
+
+                _uiState.value = AssetsUiState(
+                    totalAssets = totalAssets,
+                    healthScore = healthScore,
+                    accounts = accountModels,
+                    monthlyIncome = monthlyIncome,
+                    monthlyExpense = monthlyExpense,
+                    savingsRate = savingsRate,
+                    investmentPrincipal = investmentPrincipal,
+                    investmentCurrentValue = investmentCurrentValue,
+                    investmentReturn = investmentReturn,
+                    investmentReturnRate = investmentReturnRate,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    errorMessage = e.message
+                )
+            }
         }
     }
 
-    private fun generateMockAccounts(): List<AccountUiModel> {
-        return listOf(
-            AccountUiModel(
-                id = 1,
-                name = "招商银行",
-                icon = "\uD83C\uDFE6",
-                color = "#E8F5E9",
-                typeName = "储蓄卡",
-                balance = 45680.00
-            ),
-            AccountUiModel(
-                id = 2,
-                name = "支付宝",
-                icon = "\uD83D\uDCB3",
-                color = "#E3F2FD",
-                typeName = "电子钱包",
-                balance = 3250.00
-            ),
-            AccountUiModel(
-                id = 3,
-                name = "微信",
-                icon = "\uD83D\uDCB5",
-                color = "#FFF3E0",
-                typeName = "电子钱包",
-                balance = 1520.00
-            ),
-            AccountUiModel(
-                id = 4,
-                name = "现金",
-                icon = "\uD83D\uDCB0",
-                color = "#FCE4EC",
-                typeName = "现金",
-                balance = 500.00
-            )
-        )
+    private fun calculateHealthScore(
+        savingsRate: Float,
+        hasEmergencyFund: Boolean,
+        investmentReturnRate: Float
+    ): Int {
+        var score = 50 // 基础分
+
+        // 储蓄率评分（最高30分）
+        score += (savingsRate * 30).toInt()
+
+        // 应急基金评分（10分）
+        if (hasEmergencyFund) score += 10
+
+        // 投资收益率评分（最高10分）
+        score += (investmentReturnRate * 100).toInt().coerceIn(0, 10)
+
+        return score.coerceIn(0, 100)
+    }
+
+    fun refresh() {
+        loadAssetsData()
     }
 }
 

@@ -16,10 +16,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.CalendarMonth
@@ -27,14 +30,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -69,6 +79,46 @@ fun RecordScreen(
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("支出", "收入", "转账")
+
+    // 对话框状态
+    var showDatePicker by remember { mutableStateOf(false) }
+    var showAccountPicker by remember { mutableStateOf(false) }
+    var showNoteInput by remember { mutableStateOf(false) }
+
+    // 日期选择器对话框
+    if (showDatePicker) {
+        DatePickerDialogContent(
+            onDateSelected = { timestamp ->
+                viewModel.setDate(timestamp)
+                showDatePicker = false
+            },
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
+    // 账户选择对话框
+    if (showAccountPicker) {
+        AccountPickerDialog(
+            accounts = uiState.accounts,
+            onAccountSelected = { accountId ->
+                viewModel.selectAccount(accountId)
+                showAccountPicker = false
+            },
+            onDismiss = { showAccountPicker = false }
+        )
+    }
+
+    // 备注输入对话框
+    if (showNoteInput) {
+        NoteInputDialog(
+            initialNote = uiState.note,
+            onNoteConfirmed = { note ->
+                viewModel.setNote(note)
+                showNoteInput = false
+            },
+            onDismiss = { showNoteInput = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -148,9 +198,9 @@ fun RecordScreen(
                 date = uiState.dateText,
                 accountName = uiState.accountName,
                 note = uiState.note,
-                onDateClick = { /* TODO: 打开日期选择器 */ },
-                onAccountClick = { /* TODO: 打开账户选择器 */ },
-                onNoteClick = { /* TODO: 打开备注输入 */ },
+                onDateClick = { showDatePicker = true },
+                onAccountClick = { showAccountPicker = true },
+                onNoteClick = { showNoteInput = true },
                 modifier = Modifier.padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
             )
 
@@ -469,6 +519,145 @@ private fun ConfirmButton(
             modifier = Modifier.size(28.dp)
         )
     }
+}
+
+/**
+ * 日期选择器对话框
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialogContent(
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = System.currentTimeMillis()
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { onDateSelected(it) }
+                }
+            ) {
+                Text("确定", color = AppColors.Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = AppColors.TextSecondary)
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
+}
+
+/**
+ * 账户选择对话框
+ */
+@Composable
+private fun AccountPickerDialog(
+    accounts: List<AccountUiModel>,
+    onAccountSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "选择账户",
+                style = AppTypography.TitleMedium,
+                color = AppColors.TextPrimary
+            )
+        },
+        text = {
+            LazyColumn {
+                items(accounts) { account ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onAccountSelected(account.id) }
+                            .padding(vertical = AppDimens.PaddingM),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = account.icon,
+                            style = AppTypography.TitleMedium
+                        )
+                        Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+                        Text(
+                            text = account.name,
+                            style = AppTypography.BodyMedium,
+                            color = AppColors.TextPrimary
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = AppColors.TextSecondary)
+            }
+        },
+        containerColor = AppColors.Card
+    )
+}
+
+/**
+ * 备注输入对话框
+ */
+@Composable
+private fun NoteInputDialog(
+    initialNote: String,
+    onNoteConfirmed: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var noteText by remember { mutableStateOf(initialNote) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "添加备注",
+                style = AppTypography.TitleMedium,
+                color = AppColors.TextPrimary
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = noteText,
+                onValueChange = { noteText = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(
+                        text = "请输入备注...",
+                        color = AppColors.TextMuted
+                    )
+                },
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                ),
+                maxLines = 3
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onNoteConfirmed(noteText) }
+            ) {
+                Text("确定", color = AppColors.Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = AppColors.TextSecondary)
+            }
+        },
+        containerColor = AppColors.Card
+    )
 }
 
 /**
