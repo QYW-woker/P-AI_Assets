@@ -50,6 +50,11 @@ interface TransactionRepository {
     suspend fun getCountByDateRange(startDate: Long, endDate: Long): Int
 
     /**
+     * 获取每日汇总（用于趋势图）
+     */
+    suspend fun getDailyTotals(type: TransactionType, startDate: Long, endDate: Long): List<DailyTotal>
+
+    /**
      * 根据ID获取交易
      */
     suspend fun getTransactionById(id: Long): TransactionEntity?
@@ -99,4 +104,13 @@ data class CategorySummary(
     val totalAmount: Double,
     val count: Int,
     val percent: Float = 0f
+)
+
+/**
+ * 每日汇总数据类
+ */
+data class DailyTotal(
+    val date: Long,
+    val amount: Double,
+    val label: String
 )

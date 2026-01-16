@@ -69,11 +69,24 @@ class StatsViewModel @Inject constructor(
                     )
                 }
 
+                // 获取每日趋势数据
+                val dailyTotals = transactionRepository.getDailyTotals(
+                    TransactionType.EXPENSE, startDate, endDate
+                )
+                val dailyTrend = dailyTotals.map { daily ->
+                    DailyTrendUiModel(
+                        date = daily.date,
+                        amount = daily.amount.toFloat(),
+                        label = daily.label
+                    )
+                }
+
                 _uiState.value = StatsUiState(
                     totalIncome = totalIncome,
                     totalExpense = totalExpense,
                     balance = totalIncome - totalExpense,
                     categoryRanking = categoryRanking,
+                    dailyTrend = dailyTrend,
                     selectedPeriod = currentPeriod,
                     isLoading = false
                 )
@@ -111,8 +124,32 @@ class StatsViewModel @Inject constructor(
                 calendar.set(Calendar.SECOND, 0)
                 calendar.set(Calendar.MILLISECOND, 0)
             }
+            "季" -> {
+                // 当前季度的第一天
+                val currentMonth = calendar.get(Calendar.MONTH)
+                val quarterStartMonth = (currentMonth / 3) * 3
+                calendar.set(Calendar.MONTH, quarterStartMonth)
+                calendar.set(Calendar.DAY_OF_MONTH, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
             "年" -> {
                 calendar.set(Calendar.DAY_OF_YEAR, 1)
+                calendar.set(Calendar.HOUR_OF_DAY, 0)
+                calendar.set(Calendar.MINUTE, 0)
+                calendar.set(Calendar.SECOND, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            "全部" -> {
+                // 从很早的时间开始（2020年1月1日）
+                calendar.set(2020, Calendar.JANUARY, 1, 0, 0, 0)
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+            "自定义" -> {
+                // 自定义默认显示最近30天
+                calendar.add(Calendar.DAY_OF_MONTH, -30)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
                 calendar.set(Calendar.SECOND, 0)
@@ -136,7 +173,17 @@ data class StatsUiState(
     val totalExpense: Double = 0.0,
     val balance: Double = 0.0,
     val categoryRanking: List<CategoryRankingUiModel> = emptyList(),
+    val dailyTrend: List<DailyTrendUiModel> = emptyList(),
     val selectedPeriod: String = "月",
     val isLoading: Boolean = true,
     val errorMessage: String? = null
+)
+
+/**
+ * 每日趋势UI模型
+ */
+data class DailyTrendUiModel(
+    val date: Long,
+    val amount: Float,
+    val label: String
 )

@@ -5,9 +5,13 @@ import com.example.smartledger.data.local.dao.TransactionDao
 import com.example.smartledger.data.local.entity.TransactionEntity
 import com.example.smartledger.data.local.entity.TransactionType
 import com.example.smartledger.domain.repository.CategorySummary
+import com.example.smartledger.domain.repository.DailyTotal
 import com.example.smartledger.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -81,6 +85,22 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun getCountByDateRange(startDate: Long, endDate: Long): Int {
         return transactionDao.getCountByDateRange(startDate, endDate)
+    }
+
+    override suspend fun getDailyTotals(
+        type: TransactionType,
+        startDate: Long,
+        endDate: Long
+    ): List<DailyTotal> {
+        val results = transactionDao.getDailyTotals(type, startDate, endDate)
+        val dateFormat = SimpleDateFormat("M/d", Locale.getDefault())
+        return results.map { result ->
+            DailyTotal(
+                date = result.dayTimestamp,
+                amount = result.totalAmount,
+                label = dateFormat.format(Date(result.dayTimestamp))
+            )
+        }
     }
 
     override suspend fun getTransactionById(id: Long): TransactionEntity? {

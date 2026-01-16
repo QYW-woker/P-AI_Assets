@@ -52,6 +52,7 @@ import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import com.example.smartledger.utils.toColor
 
 /**
  * 统计页面
@@ -63,7 +64,6 @@ fun StatsScreen(
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var selectedPeriod by remember { mutableStateOf("月") }
     var selectedChartType by remember { mutableStateOf("pie") }
 
     Scaffold(
@@ -81,8 +81,8 @@ fun StatsScreen(
             // 时间筛选
             item {
                 TimeFilterTabs(
-                    selectedPeriod = selectedPeriod,
-                    onPeriodSelected = { selectedPeriod = it },
+                    selectedPeriod = uiState.selectedPeriod,
+                    onPeriodSelected = { viewModel.setPeriod(it) },
                     modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                 )
             }
@@ -112,6 +112,7 @@ fun StatsScreen(
                     chartType = selectedChartType,
                     categoryRanking = uiState.categoryRanking,
                     totalExpense = uiState.totalExpense,
+                    dailyTrend = uiState.dailyTrend,
                     modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                 )
             }
@@ -283,6 +284,7 @@ private fun ChartArea(
     chartType: String,
     categoryRanking: List<CategoryRankingUiModel>,
     totalExpense: Double,
+    dailyTrend: List<DailyTrendUiModel>,
     modifier: Modifier = Modifier
 ) {
     AppCard(modifier = modifier.fillMaxWidth()) {
@@ -294,11 +296,7 @@ private fun ChartArea(
                         PieChartData(
                             label = item.name,
                             value = item.amount.toFloat(),
-                            color = try {
-                                Color(android.graphics.Color.parseColor(item.color))
-                            } catch (e: Exception) {
-                                AppColors.Primary
-                            }
+                            color = item.color.toColor()
                         )
                     }
 
@@ -333,11 +331,7 @@ private fun ChartArea(
                         BarChartData(
                             label = item.name.take(4),
                             value = item.amount.toFloat(),
-                            color = try {
-                                Color(android.graphics.Color.parseColor(item.color))
-                            } catch (e: Exception) {
-                                AppColors.Primary
-                            }
+                            color = item.color.toColor()
                         )
                     }
 
@@ -352,24 +346,22 @@ private fun ChartArea(
             }
 
             "line" -> {
-                // 折线图 - 模拟趋势数据
-                val linePoints = listOf(
-                    LineChartPoint(0f, totalExpense.toFloat() * 0.3f, "周一"),
-                    LineChartPoint(1f, totalExpense.toFloat() * 0.5f, "周二"),
-                    LineChartPoint(2f, totalExpense.toFloat() * 0.4f, "周三"),
-                    LineChartPoint(3f, totalExpense.toFloat() * 0.8f, "周四"),
-                    LineChartPoint(4f, totalExpense.toFloat() * 0.6f, "周五"),
-                    LineChartPoint(5f, totalExpense.toFloat() * 0.9f, "周六"),
-                    LineChartPoint(6f, totalExpense.toFloat() * 0.7f, "周日")
-                )
+                // 折线图 - 使用真实趋势数据
+                if (dailyTrend.isNotEmpty()) {
+                    val linePoints = dailyTrend.mapIndexed { index, daily ->
+                        LineChartPoint(index.toFloat(), daily.amount, daily.label)
+                    }
 
-                LineChart(
-                    points = linePoints,
-                    modifier = Modifier.padding(AppDimens.PaddingM),
-                    height = 180.dp,
-                    lineColor = AppColors.Primary,
-                    showGrid = true
-                )
+                    LineChart(
+                        points = linePoints,
+                        modifier = Modifier.padding(AppDimens.PaddingM),
+                        height = 180.dp,
+                        lineColor = AppColors.Primary,
+                        showGrid = true
+                    )
+                } else {
+                    EmptyChartPlaceholder("暂无趋势数据")
+                }
             }
 
             else -> {
@@ -418,7 +410,7 @@ private fun CategoryRankingItem(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(CircleShape)
-                    .background(Color(android.graphics.Color.parseColor(item.color))),
+                    .background(item.color.toColor()),
                 contentAlignment = Alignment.Center
             ) {
                 Text(text = item.icon, style = AppTypography.BodyLarge)
@@ -455,7 +447,7 @@ private fun CategoryRankingItem(
                             .weight(1f)
                             .height(6.dp)
                             .clip(AppShapes.Full),
-                        color = Color(android.graphics.Color.parseColor(item.color)),
+                        color = item.color.toColor(),
                         trackColor = AppColors.Border
                     )
                     Spacer(modifier = Modifier.width(AppDimens.SpacingS))

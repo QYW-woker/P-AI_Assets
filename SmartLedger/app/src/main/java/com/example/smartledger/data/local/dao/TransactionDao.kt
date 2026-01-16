@@ -20,6 +20,14 @@ data class CategorySummaryResult(
 )
 
 /**
+ * 每日汇总结果
+ */
+data class DailyTotalResult(
+    val dayTimestamp: Long,
+    val totalAmount: Double
+)
+
+/**
  * 交易记录DAO
  */
 @Dao
@@ -39,6 +47,15 @@ interface TransactionDao {
 
     @Query("SELECT categoryId, SUM(amount) as totalAmount, COUNT(*) as count FROM transactions WHERE type = :type AND date BETWEEN :start AND :end GROUP BY categoryId ORDER BY totalAmount DESC")
     suspend fun getCategorySummary(type: TransactionType, start: Long, end: Long): List<CategorySummaryResult>
+
+    @Query("""
+        SELECT (date / 86400000) * 86400000 as dayTimestamp, SUM(amount) as totalAmount
+        FROM transactions
+        WHERE type = :type AND date BETWEEN :start AND :end
+        GROUP BY (date / 86400000)
+        ORDER BY dayTimestamp ASC
+    """)
+    suspend fun getDailyTotals(type: TransactionType, start: Long, end: Long): List<DailyTotalResult>
 
     @Query("SELECT * FROM transactions ORDER BY date DESC LIMIT :limit")
     fun getRecentTransactions(limit: Int): Flow<List<TransactionEntity>>
