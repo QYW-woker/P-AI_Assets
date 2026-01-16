@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
@@ -76,7 +76,7 @@ fun SettingsScreen(
                         onClick = { /* TODO: 选择货币 */ }
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )
@@ -88,7 +88,7 @@ fun SettingsScreen(
                         onClick = { /* TODO: 选择日期 */ }
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )
@@ -125,7 +125,7 @@ fun SettingsScreen(
                         onCheckedChange = { viewModel.setDailyReminder(it) }
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )

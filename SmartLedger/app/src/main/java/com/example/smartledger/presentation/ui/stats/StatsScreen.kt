@@ -136,6 +136,7 @@ fun StatsScreen(
 /**
  * 时间筛选标签
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeFilterTabs(
     selectedPeriod: String,
@@ -348,14 +349,13 @@ private fun CategoryRankingItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = progress,
                         modifier = Modifier
                             .weight(1f)
                             .height(6.dp)
                             .clip(AppShapes.Full),
                         color = Color(android.graphics.Color.parseColor(item.color)),
-                        trackColor = AppColors.Border,
-                        strokeCap = StrokeCap.Round
+                        trackColor = AppColors.Border
                     )
                     Spacer(modifier = Modifier.width(AppDimens.SpacingS))
                     Text(

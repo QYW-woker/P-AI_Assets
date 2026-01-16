@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import com.example.smartledger.presentation.ui.theme.AppShapes
 /**
  * 基础卡片组件
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
@@ -82,6 +84,7 @@ fun AppCard(
 /**
  * 小尺寸卡片
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppCardSmall(
     modifier: Modifier = Modifier,
@@ -169,6 +172,7 @@ fun GradientCard(
 /**
  * 边框卡片 - 用于选中状态展示
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OutlinedAppCard(
     modifier: Modifier = Modifier,

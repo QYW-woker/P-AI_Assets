@@ -20,7 +20,7 @@ import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -227,7 +227,7 @@ private fun ExportOptionsCard(
                 onClick = onExportJson
             )
 
-            HorizontalDivider(color = AppColors.Divider)
+            Divider(color = AppColors.Divider)
 
             ExportOption(
                 icon = Icons.Filled.FileDownload,

@@ -174,14 +174,13 @@ private fun TotalBudgetCard(
             Spacer(modifier = Modifier.height(AppDimens.SpacingM))
 
             LinearProgressIndicator(
-                progress = { progress },
+                progress = progress,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(AppDimens.ProgressBarHeight)
                     .clip(AppShapes.Full),
                 color = progressColor,
-                trackColor = AppColors.Border,
-                strokeCap = StrokeCap.Round
+                trackColor = AppColors.Border
             )
 
             Spacer(modifier = Modifier.height(AppDimens.SpacingM))
@@ -290,14 +289,13 @@ private fun CategoryBudgetItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = { progress.coerceAtMost(1f) },
+                        progress = progress.coerceAtMost(1f),
                         modifier = Modifier
                             .weight(1f)
                             .height(6.dp)
                             .clip(AppShapes.Full),
                         color = progressColor,
-                        trackColor = AppColors.Border,
-                        strokeCap = StrokeCap.Round
+                        trackColor = AppColors.Border
                     )
                     Spacer(modifier = Modifier.width(AppDimens.SpacingS))
                     Text(

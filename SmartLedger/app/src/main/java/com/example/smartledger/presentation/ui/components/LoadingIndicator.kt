@@ -157,13 +157,12 @@ fun LinearProgressIndicatorWithProgress(
     trackColor: Color = AppColors.Border
 ) {
     LinearProgressIndicator(
-        progress = { progress },
+        progress = progress,
         modifier = modifier
             .height(AppDimens.ProgressBarHeight)
             .clip(AppShapes.Full),
         color = color,
-        trackColor = trackColor,
-        strokeCap = StrokeCap.Round
+        trackColor = trackColor
     )
 }
 

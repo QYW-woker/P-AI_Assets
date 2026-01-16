@@ -206,6 +206,7 @@ private fun ChatMessageItem(
 /**
  * 快捷建议
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun QuickSuggestions(
     suggestions: List<String>,
@@ -229,11 +230,6 @@ private fun QuickSuggestions(
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = AppColors.Card,
                     labelColor = AppColors.TextSecondary
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    borderColor = AppColors.Border,
-                    enabled = true,
-                    selected = false
                 )
             )
         }

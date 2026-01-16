@@ -23,7 +23,7 @@ import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.Divider
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -42,6 +42,7 @@ import com.example.smartledger.presentation.ui.theme.AppTypography
 /**
  * 我的页面
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
     onNavigateToSettings: () -> Unit,
@@ -85,7 +86,7 @@ fun ProfileScreen(
                         onClick = onNavigateToBudget
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )
@@ -97,7 +98,7 @@ fun ProfileScreen(
                         onClick = onNavigateToGoals
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )
@@ -123,7 +124,7 @@ fun ProfileScreen(
                         onClick = onNavigateToBackup
                     )
 
-                    HorizontalDivider(
+                    Divider(
                         modifier = Modifier.padding(start = 40.dp),
                         color = AppColors.Divider
                     )
