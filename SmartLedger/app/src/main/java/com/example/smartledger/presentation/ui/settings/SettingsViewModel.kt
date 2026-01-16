@@ -2,6 +2,7 @@ package com.example.smartledger.presentation.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.datastore.SettingsDataStore
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    // TODO: 注入SettingsRepository
+    private val settingsDataStore: SettingsDataStore
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -27,53 +28,68 @@ class SettingsViewModel @Inject constructor(
 
     private fun loadSettings() {
         viewModelScope.launch {
-            // TODO: 从DataStore加载设置
-            _uiState.value = SettingsUiState(
-                currency = "CNY ¥",
-                monthStartDay = 1,
-                weekStartDay = "周一",
-                isDarkMode = false,
-                isDailyReminderEnabled = true,
-                reminderTime = "21:00",
-                isBudgetAlertEnabled = true,
-                isLoading = false
-            )
+            settingsDataStore.settingsFlow.collect { settings ->
+                _uiState.value = SettingsUiState(
+                    currency = settings.currency,
+                    monthStartDay = settings.monthStartDay,
+                    weekStartDay = settings.weekStartDay,
+                    isDarkMode = settings.isDarkMode,
+                    isDailyReminderEnabled = settings.isDailyReminderEnabled,
+                    reminderTime = settings.reminderTime,
+                    isBudgetAlertEnabled = settings.isBudgetAlertEnabled,
+                    isLoading = false
+                )
+            }
         }
     }
 
     fun setCurrency(currency: String) {
-        _uiState.update { it.copy(currency = currency) }
-        // TODO: 保存到DataStore
+        viewModelScope.launch {
+            settingsDataStore.setCurrency(currency)
+            _uiState.update { it.copy(currency = currency) }
+        }
     }
 
     fun setMonthStartDay(day: Int) {
-        _uiState.update { it.copy(monthStartDay = day) }
-        // TODO: 保存到DataStore
+        viewModelScope.launch {
+            settingsDataStore.setMonthStartDay(day)
+            _uiState.update { it.copy(monthStartDay = day) }
+        }
     }
 
     fun setWeekStartDay(day: String) {
-        _uiState.update { it.copy(weekStartDay = day) }
-        // TODO: 保存到DataStore
+        viewModelScope.launch {
+            settingsDataStore.setWeekStartDay(day)
+            _uiState.update { it.copy(weekStartDay = day) }
+        }
     }
 
     fun setDarkMode(enabled: Boolean) {
-        _uiState.update { it.copy(isDarkMode = enabled) }
-        // TODO: 保存到DataStore并更新主题
+        viewModelScope.launch {
+            settingsDataStore.setDarkMode(enabled)
+            _uiState.update { it.copy(isDarkMode = enabled) }
+        }
     }
 
     fun setDailyReminder(enabled: Boolean) {
-        _uiState.update { it.copy(isDailyReminderEnabled = enabled) }
-        // TODO: 保存到DataStore并配置提醒
+        viewModelScope.launch {
+            settingsDataStore.setDailyReminder(enabled)
+            _uiState.update { it.copy(isDailyReminderEnabled = enabled) }
+        }
     }
 
     fun setReminderTime(time: String) {
-        _uiState.update { it.copy(reminderTime = time) }
-        // TODO: 保存到DataStore并更新提醒时间
+        viewModelScope.launch {
+            settingsDataStore.setReminderTime(time)
+            _uiState.update { it.copy(reminderTime = time) }
+        }
     }
 
     fun setBudgetAlert(enabled: Boolean) {
-        _uiState.update { it.copy(isBudgetAlertEnabled = enabled) }
-        // TODO: 保存到DataStore
+        viewModelScope.launch {
+            settingsDataStore.setBudgetAlert(enabled)
+            _uiState.update { it.copy(isBudgetAlertEnabled = enabled) }
+        }
     }
 }
 
