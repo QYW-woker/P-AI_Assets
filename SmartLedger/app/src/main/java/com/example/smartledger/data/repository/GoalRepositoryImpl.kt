@@ -55,4 +55,8 @@ class GoalRepositoryImpl @Inject constructor(
     override suspend fun getAllGoalsForBackup(): List<GoalEntity> {
         return goalDao.getAllGoalsForBackup()
     }
+
+    override suspend fun deleteAllGoals() {
+        goalDao.clearAll()
+    }
 }

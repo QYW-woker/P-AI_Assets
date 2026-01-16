@@ -60,6 +60,7 @@ class CategoryManagementViewModel @Inject constructor(
             val maxSortOrder = when (type) {
                 TransactionType.EXPENSE -> _uiState.value.expenseCategories.maxOfOrNull { it.sortOrder } ?: 0
                 TransactionType.INCOME -> _uiState.value.incomeCategories.maxOfOrNull { it.sortOrder } ?: 0
+                TransactionType.TRANSFER -> 0 // 转账不需要分类
             }
 
             val category = CategoryEntity(

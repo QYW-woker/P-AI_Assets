@@ -247,7 +247,7 @@ class AiChatViewModel @Inject constructor(
         val monthEnd = calendar.timeInMillis
 
         val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd).first()
-        val budgets = budgetRepository.getAllBudgets().first()
+        val budgets = budgetRepository.getAllBudgets()
         val categoryMap = categories.associateBy { it.id }
 
         if (budgets.isEmpty()) {

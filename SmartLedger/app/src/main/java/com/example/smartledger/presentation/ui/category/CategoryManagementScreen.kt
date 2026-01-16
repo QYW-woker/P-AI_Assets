@@ -64,6 +64,7 @@ fun CategoryManagementScreen(
     val categories = when (selectedTab) {
         TransactionType.EXPENSE -> uiState.expenseCategories
         TransactionType.INCOME -> uiState.incomeCategories
+        TransactionType.TRANSFER -> emptyList() // 转账不需要分类
     }
 
     Scaffold(

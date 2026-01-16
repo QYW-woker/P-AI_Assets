@@ -83,6 +83,11 @@ interface TransactionRepository {
      * 获取所有交易（用于备份）
      */
     suspend fun getAllTransactions(): List<TransactionEntity>
+
+    /**
+     * 删除所有交易
+     */
+    suspend fun deleteAllTransactions()
 }
 
 /**

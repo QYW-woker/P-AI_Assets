@@ -62,4 +62,9 @@ interface GoalRepository {
      * 获取所有目标（用于备份）
      */
     suspend fun getAllGoalsForBackup(): List<GoalEntity>
+
+    /**
+     * 删除所有目标
+     */
+    suspend fun deleteAllGoals()
 }

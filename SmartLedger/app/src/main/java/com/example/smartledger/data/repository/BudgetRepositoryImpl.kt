@@ -47,4 +47,8 @@ class BudgetRepositoryImpl @Inject constructor(
     override suspend fun getAllBudgets(): List<BudgetEntity> {
         return budgetDao.getAllBudgetsForBackup()
     }
+
+    override suspend fun deleteAllBudgets() {
+        budgetDao.clearAll()
+    }
 }

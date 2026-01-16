@@ -115,4 +115,8 @@ class TransactionRepositoryImpl @Inject constructor(
     override suspend fun getAllTransactions(): List<TransactionEntity> {
         return transactionDao.getAllTransactionsForBackup()
     }
+
+    override suspend fun deleteAllTransactions() {
+        transactionDao.clearAll()
+    }
 }

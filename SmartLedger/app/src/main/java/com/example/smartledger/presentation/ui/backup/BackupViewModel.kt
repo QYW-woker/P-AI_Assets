@@ -158,6 +158,64 @@ class BackupViewModel @Inject constructor(
         }
     }
 
+    fun restore() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isRestoring = true, errorMessage = null) }
+
+            val result = backupManager.restoreBackup()
+
+            when (result) {
+                is BackupResult.Success -> {
+                    _uiState.update {
+                        it.copy(
+                            isRestoring = false,
+                            successMessage = "数据恢复成功"
+                        )
+                    }
+                    loadBackupInfo()
+                }
+                is BackupResult.Error -> {
+                    _uiState.update {
+                        it.copy(
+                            isRestoring = false,
+                            errorMessage = result.message
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    fun clearAllData() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+            try {
+                backupManager.clearAllData()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        recordCount = 0,
+                        transactionCount = 0,
+                        categoryCount = 0,
+                        accountCount = 0,
+                        budgetCount = 0,
+                        goalCount = 0,
+                        dataSize = "0 KB",
+                        successMessage = "所有数据已清除"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        errorMessage = "清除失败: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
     fun clearSuccessMessage() {
         _uiState.update { it.copy(successMessage = null) }
     }

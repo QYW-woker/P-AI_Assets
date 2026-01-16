@@ -52,4 +52,9 @@ interface BudgetRepository {
      * 获取所有预算（用于备份）
      */
     suspend fun getAllBudgets(): List<BudgetEntity>
+
+    /**
+     * 删除所有预算
+     */
+    suspend fun deleteAllBudgets()
 }
