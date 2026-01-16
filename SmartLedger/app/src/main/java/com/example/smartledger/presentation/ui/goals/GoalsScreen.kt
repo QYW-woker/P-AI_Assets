@@ -234,6 +234,7 @@ data class GoalUiModel(
     val icon: String,
     val targetAmount: Double,
     val currentAmount: Double,
+    val progress: Float = 0f,
     val deadline: String?,
     val estimatedCompletion: String?,
     val note: String

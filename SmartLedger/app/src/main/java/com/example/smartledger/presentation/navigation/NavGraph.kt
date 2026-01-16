@@ -31,6 +31,8 @@ import com.example.smartledger.presentation.ui.budget.BudgetScreen
 import com.example.smartledger.presentation.ui.goals.GoalsScreen
 import com.example.smartledger.presentation.ui.settings.SettingsScreen
 import com.example.smartledger.presentation.ui.backup.BackupScreen
+import com.example.smartledger.presentation.ui.accounts.AccountManagementScreen
+import com.example.smartledger.presentation.ui.category.CategoryManagementScreen
 
 /**
  * 应用主导航Host
@@ -143,7 +145,8 @@ fun SmartLedgerNavHost(
                     onNavigateToBudget = { navController.navigate(Screen.Budget.route) },
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
-                    onNavigateToAiChat = { navController.navigate(Screen.AiChat.route) }
+                    onNavigateToAiChat = { navController.navigate(Screen.AiChat.route) },
+                    onNavigateToCategoryManage = { navController.navigate(Screen.CategoryManage.route) }
                 )
             }
 
@@ -219,8 +222,16 @@ fun SmartLedgerNavHost(
 
             // 账户管理
             composable(Screen.AccountManage.route) {
-                // AccountManageScreen(...)
-                PlaceholderScreen(title = "账户管理")
+                AccountManagementScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 分类管理
+            composable(Screen.CategoryManage.route) {
+                CategoryManagementScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // 添加预算

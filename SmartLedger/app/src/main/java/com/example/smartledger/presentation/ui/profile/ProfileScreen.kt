@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.SmartToy
@@ -49,7 +50,8 @@ fun ProfileScreen(
     onNavigateToBudget: () -> Unit,
     onNavigateToGoals: () -> Unit,
     onNavigateToBackup: () -> Unit,
-    onNavigateToAiChat: () -> Unit
+    onNavigateToAiChat: () -> Unit,
+    onNavigateToCategoryManage: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -108,6 +110,18 @@ fun ProfileScreen(
                         title = "AI助手",
                         subtitle = "智能记账，轻松管理财务",
                         onClick = onNavigateToAiChat
+                    )
+
+                    Divider(
+                        modifier = Modifier.padding(start = 40.dp),
+                        color = AppColors.Divider
+                    )
+
+                    ProfileMenuItem(
+                        icon = Icons.Filled.Category,
+                        title = "分类管理",
+                        subtitle = "自定义收支分类",
+                        onClick = onNavigateToCategoryManage
                     )
                 }
             }
