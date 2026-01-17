@@ -26,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,10 +52,28 @@ import com.example.smartledger.utils.toColor
 @Composable
 fun BudgetScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToAddBudget: () -> Unit,
+    onNavigateToAddBudget: () -> Unit = {}, // 保留参数以兼容旧代码，但不再使用
     viewModel: BudgetViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val expenseCategories by viewModel.expenseCategories.collectAsState()
+    var showAddBudgetDialog by remember { mutableStateOf(false) }
+
+    // 添加预算对话框
+    if (showAddBudgetDialog) {
+        AddBudgetDialog(
+            categories = expenseCategories,
+            onDismiss = { showAddBudgetDialog = false },
+            onConfirm = { categoryId, amount ->
+                if (categoryId == null) {
+                    viewModel.addTotalBudget(amount)
+                } else {
+                    viewModel.addCategoryBudget(categoryId, amount)
+                }
+                showAddBudgetDialog = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +84,7 @@ fun BudgetScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAddBudget,
+                onClick = { showAddBudgetDialog = true },
                 containerColor = AppColors.Accent,
                 contentColor = Color.White
             ) {
@@ -76,7 +97,7 @@ fun BudgetScreen(
     ) { paddingValues ->
         if (uiState.budgets.isEmpty() && uiState.totalBudget == null) {
             NoBudgetState(
-                onAddBudget = onNavigateToAddBudget,
+                onAddBudget = { showAddBudgetDialog = true },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)

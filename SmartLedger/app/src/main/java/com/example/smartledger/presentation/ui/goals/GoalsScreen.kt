@@ -26,6 +26,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,11 +51,23 @@ import com.example.smartledger.presentation.ui.theme.AppTypography
 @Composable
 fun GoalsScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToAddGoal: () -> Unit,
+    onNavigateToAddGoal: () -> Unit = {}, // 保留参数以兼容旧代码，但不再使用
     onNavigateToGoalDetail: (Long) -> Unit,
     viewModel: GoalsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showAddGoalDialog by remember { mutableStateOf(false) }
+
+    // 添加目标对话框
+    if (showAddGoalDialog) {
+        AddGoalDialog(
+            onDismiss = { showAddGoalDialog = false },
+            onConfirm = { name, icon, targetAmount, deadline, note ->
+                viewModel.addGoal(name, icon, targetAmount, deadline, note)
+                showAddGoalDialog = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +78,7 @@ fun GoalsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onNavigateToAddGoal,
+                onClick = { showAddGoalDialog = true },
                 containerColor = AppColors.Accent,
                 contentColor = Color.White
             ) {
@@ -76,7 +91,7 @@ fun GoalsScreen(
     ) { paddingValues ->
         if (uiState.goals.isEmpty()) {
             NoGoalsState(
-                onAddGoal = onNavigateToAddGoal,
+                onAddGoal = { showAddGoalDialog = true },
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)

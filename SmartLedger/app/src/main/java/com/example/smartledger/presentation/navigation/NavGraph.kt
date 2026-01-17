@@ -28,12 +28,15 @@ import com.example.smartledger.presentation.ui.assets.AssetsScreen
 import com.example.smartledger.presentation.ui.profile.ProfileScreen
 import com.example.smartledger.presentation.ui.ai.AiChatScreen
 import com.example.smartledger.presentation.ui.budget.BudgetScreen
+import com.example.smartledger.presentation.ui.goals.GoalDetailScreen
 import com.example.smartledger.presentation.ui.goals.GoalsScreen
 import com.example.smartledger.presentation.ui.settings.SettingsScreen
 import com.example.smartledger.presentation.ui.backup.BackupScreen
+import com.example.smartledger.presentation.ui.accounts.AccountDetailScreen
 import com.example.smartledger.presentation.ui.accounts.AccountManagementScreen
 import com.example.smartledger.presentation.ui.category.CategoryManagementScreen
 import com.example.smartledger.presentation.ui.search.SearchScreen
+import com.example.smartledger.presentation.ui.transactions.TransactionDetailScreen
 import com.example.smartledger.presentation.ui.transactions.TransactionListScreen
 
 /**
@@ -200,8 +203,10 @@ fun SmartLedgerNavHost(
                 )
             ) { backStackEntry ->
                 val transactionId = backStackEntry.arguments?.getLong(NavArgs.TRANSACTION_ID) ?: 0L
-                // TransactionDetailScreen(transactionId = transactionId, ...)
-                PlaceholderScreen(title = "交易详情 #$transactionId")
+                TransactionDetailScreen(
+                    transactionId = transactionId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // 交易列表
@@ -223,8 +228,10 @@ fun SmartLedgerNavHost(
                 )
             ) { backStackEntry ->
                 val accountId = backStackEntry.arguments?.getLong(NavArgs.ACCOUNT_ID) ?: 0L
-                // AccountDetailScreen(accountId = accountId, ...)
-                PlaceholderScreen(title = "账户详情 #$accountId")
+                AccountDetailScreen(
+                    accountId = accountId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // 账户管理
@@ -261,8 +268,10 @@ fun SmartLedgerNavHost(
                 )
             ) { backStackEntry ->
                 val goalId = backStackEntry.arguments?.getLong(NavArgs.GOAL_ID) ?: 0L
-                // GoalDetailScreen(goalId = goalId, ...)
-                PlaceholderScreen(title = "目标详情 #$goalId")
+                GoalDetailScreen(
+                    goalId = goalId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
 
             // 搜索

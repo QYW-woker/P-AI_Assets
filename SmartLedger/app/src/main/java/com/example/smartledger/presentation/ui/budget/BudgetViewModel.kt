@@ -30,8 +30,27 @@ class BudgetViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(BudgetUiState())
     val uiState: StateFlow<BudgetUiState> = _uiState.asStateFlow()
 
+    private val _expenseCategories = MutableStateFlow<List<BudgetCategoryItem>>(emptyList())
+    val expenseCategories: StateFlow<List<BudgetCategoryItem>> = _expenseCategories.asStateFlow()
+
     init {
         loadBudgetData()
+        loadExpenseCategories()
+    }
+
+    private fun loadExpenseCategories() {
+        viewModelScope.launch {
+            categoryRepository.getCategoriesByType(TransactionType.EXPENSE).collect { categories ->
+                _expenseCategories.value = categories.map { category ->
+                    BudgetCategoryItem(
+                        id = category.id,
+                        name = category.name,
+                        icon = category.icon,
+                        color = category.color
+                    )
+                }
+            }
+        }
     }
 
     private fun loadBudgetData() {
