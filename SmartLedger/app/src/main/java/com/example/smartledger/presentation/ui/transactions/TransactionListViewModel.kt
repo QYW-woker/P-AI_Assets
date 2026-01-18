@@ -368,6 +368,142 @@ class TransactionListViewModel @Inject constructor(
         loadTransactionsByMonth(newYear, newMonth)
     }
 
+    // ============ 批量选择功能 ============
+
+    /**
+     * 切换选择模式
+     */
+    fun toggleSelectionMode() {
+        _uiState.value = _uiState.value.copy(
+            isSelectionMode = !_uiState.value.isSelectionMode,
+            selectedTransactionIds = emptySet()
+        )
+    }
+
+    /**
+     * 退出选择模式
+     */
+    fun exitSelectionMode() {
+        _uiState.value = _uiState.value.copy(
+            isSelectionMode = false,
+            selectedTransactionIds = emptySet()
+        )
+    }
+
+    /**
+     * 切换单个交易的选中状态
+     */
+    fun toggleTransactionSelection(transactionId: Long) {
+        val currentSelected = _uiState.value.selectedTransactionIds
+        _uiState.value = _uiState.value.copy(
+            selectedTransactionIds = if (transactionId in currentSelected) {
+                currentSelected - transactionId
+            } else {
+                currentSelected + transactionId
+            }
+        )
+    }
+
+    /**
+     * 全选当前筛选结果
+     */
+    fun selectAll() {
+        val allIds = _uiState.value.transactionGroups
+            .flatMap { it.transactions }
+            .map { it.id }
+            .toSet()
+        _uiState.value = _uiState.value.copy(selectedTransactionIds = allIds)
+    }
+
+    /**
+     * 清除选择
+     */
+    fun clearSelection() {
+        _uiState.value = _uiState.value.copy(selectedTransactionIds = emptySet())
+    }
+
+    /**
+     * 批量删除选中的交易
+     */
+    fun deleteSelectedTransactions() {
+        viewModelScope.launch {
+            val selectedIds = _uiState.value.selectedTransactionIds
+            if (selectedIds.isEmpty()) return@launch
+
+            try {
+                selectedIds.forEach { id ->
+                    val transaction = transactionRepository.getTransactionById(id)
+                    if (transaction != null) {
+                        transactionRepository.deleteTransaction(transaction)
+                    }
+                }
+
+                // 退出选择模式并重新加载数据
+                _uiState.value = _uiState.value.copy(
+                    isSelectionMode = false,
+                    selectedTransactionIds = emptySet()
+                )
+
+                // 重新加载数据
+                val state = _uiState.value
+                if (state.timePeriod == TimePeriod.MONTH) {
+                    loadTransactionsByMonth(state.selectedYear, state.selectedMonth)
+                } else {
+                    setTimePeriod(state.timePeriod)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "批量删除失败: ${e.message}"
+                )
+            }
+        }
+    }
+
+    // ============ 复制功能 ============
+
+    /**
+     * 复制交易（创建一个相同内容的新交易，日期为当前时间）
+     */
+    fun copyTransaction(transactionId: Long) {
+        viewModelScope.launch {
+            try {
+                val originalTransaction = transactionRepository.getTransactionById(transactionId)
+                if (originalTransaction != null) {
+                    // 创建副本，使用当前时间
+                    val copiedTransaction = originalTransaction.copy(
+                        id = 0, // 新ID
+                        date = System.currentTimeMillis(),
+                        createdAt = System.currentTimeMillis(),
+                        updatedAt = System.currentTimeMillis()
+                    )
+                    transactionRepository.insertTransaction(copiedTransaction)
+
+                    // 显示成功提示
+                    _uiState.value = _uiState.value.copy(showCopySuccess = true)
+
+                    // 重新加载当前数据
+                    val state = _uiState.value
+                    if (state.timePeriod == TimePeriod.MONTH) {
+                        loadTransactionsByMonth(state.selectedYear, state.selectedMonth)
+                    } else {
+                        setTimePeriod(state.timePeriod)
+                    }
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "复制失败: ${e.message}"
+                )
+            }
+        }
+    }
+
+    /**
+     * 隐藏复制成功提示
+     */
+    fun dismissCopySuccess() {
+        _uiState.value = _uiState.value.copy(showCopySuccess = false)
+    }
+
     private fun TransactionEntity.toTransactionItem(): TransactionItem {
         val categoryInfo = categoryMap[categoryId]
         val accountInfo = accountMap[accountId]
@@ -440,7 +576,12 @@ data class TransactionListUiState(
     val isFiltered: Boolean = false,
     val filterStats: FilterStatistics = FilterStatistics(),
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // 批量选择状态
+    val isSelectionMode: Boolean = false,
+    val selectedTransactionIds: Set<Long> = emptySet(),
+    // 复制成功提示
+    val showCopySuccess: Boolean = false
 )
 
 /**

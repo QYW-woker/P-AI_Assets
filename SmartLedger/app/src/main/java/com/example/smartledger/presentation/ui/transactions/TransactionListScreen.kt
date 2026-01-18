@@ -1,7 +1,9 @@
 package com.example.smartledger.presentation.ui.transactions
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,7 +28,14 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,11 +59,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -87,41 +99,72 @@ fun TransactionListScreen(
 
     var showFilterSheet by remember { mutableStateOf(false) }
     var showDateRangePicker by remember { mutableStateOf(false) }
+    var showDeleteConfirmDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // 显示复制成功提示
+    LaunchedEffect(uiState.showCopySuccess) {
+        if (uiState.showCopySuccess) {
+            snackbarHostState.showSnackbar("复制成功，已添加到今天")
+            viewModel.dismissCopySuccess()
+        }
+    }
 
     Scaffold(
         topBar = {
-            AppTopBarWithBack(
-                title = "账目明细",
-                onBackClick = onNavigateBack,
-                actions = {
-                    // 筛选按钮
-                    IconButton(onClick = { showFilterSheet = true }) {
-                        Box {
-                            Text(
-                                text = "⚙️",
-                                style = AppTypography.BodyMedium
+            if (uiState.isSelectionMode) {
+                // 选择模式下的顶栏
+                SelectionModeTopBar(
+                    selectedCount = uiState.selectedTransactionIds.size,
+                    onClose = { viewModel.exitSelectionMode() },
+                    onSelectAll = { viewModel.selectAll() },
+                    onDeleteSelected = { showDeleteConfirmDialog = true }
+                )
+            } else {
+                // 正常顶栏
+                AppTopBarWithBack(
+                    title = "账目明细",
+                    onBackClick = onNavigateBack,
+                    actions = {
+                        // 选择模式按钮
+                        IconButton(onClick = { viewModel.toggleSelectionMode() }) {
+                            Icon(
+                                imageVector = Icons.Filled.Done,
+                                contentDescription = "多选",
+                                tint = AppColors.TextPrimary
                             )
-                            if (uiState.isFiltered) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(AppColors.Accent)
+                        }
+                        // 筛选按钮
+                        IconButton(onClick = { showFilterSheet = true }) {
+                            Box {
+                                Text(
+                                    text = "⚙️",
+                                    style = AppTypography.BodyMedium
                                 )
+                                if (uiState.isFiltered) {
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(AppColors.Accent)
+                                    )
+                                }
                             }
                         }
+                        IconButton(onClick = onNavigateToSearch) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "搜索",
+                                tint = AppColors.TextPrimary
+                            )
+                        }
                     }
-                    IconButton(onClick = onNavigateToSearch) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "搜索",
-                            tint = AppColors.TextPrimary
-                        )
-                    }
-                }
-            )
-        }
+                )
+            }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -185,8 +228,23 @@ fun TransactionListScreen(
                         items(group.transactions) { transaction ->
                             TransactionItemCard(
                                 transaction = transaction,
-                                onClick = { onNavigateToTransactionDetail(transaction.id) },
-                                onDelete = { viewModel.deleteTransaction(transaction.id) }
+                                isSelectionMode = uiState.isSelectionMode,
+                                isSelected = transaction.id in uiState.selectedTransactionIds,
+                                onClick = {
+                                    if (uiState.isSelectionMode) {
+                                        viewModel.toggleTransactionSelection(transaction.id)
+                                    } else {
+                                        onNavigateToTransactionDetail(transaction.id)
+                                    }
+                                },
+                                onLongClick = {
+                                    if (!uiState.isSelectionMode) {
+                                        viewModel.toggleSelectionMode()
+                                        viewModel.toggleTransactionSelection(transaction.id)
+                                    }
+                                },
+                                onDelete = { viewModel.deleteTransaction(transaction.id) },
+                                onCopy = { viewModel.copyTransaction(transaction.id) }
                             )
                         }
                     }
@@ -197,6 +255,41 @@ fun TransactionListScreen(
                 }
             }
         }
+    }
+
+    // 批量删除确认对话框
+    if (showDeleteConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            title = {
+                Text(
+                    text = "确认删除",
+                    style = AppTypography.TitleMedium
+                )
+            },
+            text = {
+                Text(
+                    text = "确定要删除选中的 ${uiState.selectedTransactionIds.size} 条记录吗？此操作不可撤销。",
+                    style = AppTypography.BodyMedium,
+                    color = AppColors.TextSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSelectedTransactions()
+                        showDeleteConfirmDialog = false
+                    }
+                ) {
+                    Text("删除", color = AppColors.Accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmDialog = false }) {
+                    Text("取消", color = AppColors.TextSecondary)
+                }
+            }
+        )
     }
 
     // 高级筛选底部弹窗
@@ -228,6 +321,63 @@ fun TransactionListScreen(
                 showDateRangePicker = false
             }
         )
+    }
+}
+
+/**
+ * 选择模式顶栏
+ */
+@Composable
+private fun SelectionModeTopBar(
+    selectedCount: Int,
+    onClose: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDeleteSelected: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(AppColors.Primary)
+            .padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onClose) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = "取消",
+                    tint = Color.White
+                )
+            }
+            Text(
+                text = "已选择 $selectedCount 项",
+                style = AppTypography.TitleSmall,
+                color = Color.White
+            )
+        }
+
+        Row {
+            TextButton(onClick = onSelectAll) {
+                Text(
+                    text = "全选",
+                    style = AppTypography.LabelMedium,
+                    color = Color.White
+                )
+            }
+            IconButton(
+                onClick = onDeleteSelected,
+                enabled = selectedCount > 0
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "删除选中",
+                    tint = if (selectedCount > 0) Color.White else Color.White.copy(alpha = 0.5f)
+                )
+            }
+        }
     }
 }
 
@@ -1063,11 +1213,16 @@ private fun DateHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun TransactionItemCard(
     transaction: TransactionItem,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
     onClick: () -> Unit,
-    onDelete: () -> Unit
+    onLongClick: () -> Unit = {},
+    onDelete: () -> Unit,
+    onCopy: () -> Unit = {}
 ) {
     val categoryColor = try {
         transaction.categoryColor.toColor()
@@ -1075,77 +1230,155 @@ private fun TransactionItemCard(
         AppColors.Primary
     }
 
-    AppCard(
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = AppDimens.PaddingL),
-        onClick = onClick
+            .padding(horizontal = AppDimens.PaddingL)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
+        AppCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onLongClick
+                )
+                .then(
+                    if (isSelected) Modifier.background(
+                        AppColors.Primary.copy(alpha = 0.1f),
+                        RoundedCornerShape(AppDimens.RadiusM)
+                    ) else Modifier
+                )
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(categoryColor),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = transaction.categoryIcon,
-                    style = AppTypography.BodyMedium
-                )
-            }
-
-            Spacer(modifier = Modifier.width(AppDimens.SpacingM))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = transaction.categoryName,
-                    style = AppTypography.BodyMedium,
-                    color = AppColors.TextPrimary
-                )
-                Row {
-                    Text(
-                        text = transaction.time,
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                // 选择模式下显示复选框
+                if (isSelectionMode) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onClick() },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = AppColors.Primary
+                        ),
+                        modifier = Modifier.size(40.dp)
                     )
-                    if (transaction.accountName.isNotBlank()) {
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(categoryColor),
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = " · ${transaction.accountName}",
-                            style = AppTypography.Caption,
-                            color = AppColors.TextMuted
-                        )
-                    }
-                    if (transaction.note.isNotBlank()) {
-                        Text(
-                            text = " · ${transaction.note}",
-                            style = AppTypography.Caption,
-                            color = AppColors.TextMuted,
-                            maxLines = 1
+                            text = transaction.categoryIcon,
+                            style = AppTypography.BodyMedium
                         )
                     }
                 }
-            }
 
-            Text(
-                text = "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
-                style = AppTypography.NumberSmall,
-                color = if (transaction.type == TransactionType.EXPENSE) AppColors.Accent else AppColors.Success
-            )
+                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
 
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.Delete,
-                    contentDescription = "删除",
-                    tint = AppColors.TextMuted,
-                    modifier = Modifier.size(18.dp)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = transaction.categoryName,
+                        style = AppTypography.BodyMedium,
+                        color = AppColors.TextPrimary
+                    )
+                    Row {
+                        Text(
+                            text = transaction.time,
+                            style = AppTypography.Caption,
+                            color = AppColors.TextMuted
+                        )
+                        if (transaction.accountName.isNotBlank()) {
+                            Text(
+                                text = " · ${transaction.accountName}",
+                                style = AppTypography.Caption,
+                                color = AppColors.TextMuted
+                            )
+                        }
+                        if (transaction.note.isNotBlank()) {
+                            Text(
+                                text = " · ${transaction.note}",
+                                style = AppTypography.Caption,
+                                color = AppColors.TextMuted,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
+                    style = AppTypography.NumberSmall,
+                    color = if (transaction.type == TransactionType.EXPENSE) AppColors.Accent else AppColors.Success
                 )
+
+                // 非选择模式下显示更多菜单
+                if (!isSelectionMode) {
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.MoreVert,
+                                contentDescription = "更多",
+                                tint = AppColors.TextMuted,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                                    ) {
+                                        Text("📋", style = AppTypography.BodyMedium)
+                                        Text("复制", style = AppTypography.BodyMedium)
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onCopy()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Delete,
+                                            contentDescription = null,
+                                            tint = AppColors.Accent,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            "删除",
+                                            style = AppTypography.BodyMedium,
+                                            color = AppColors.Accent
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onDelete()
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
     }

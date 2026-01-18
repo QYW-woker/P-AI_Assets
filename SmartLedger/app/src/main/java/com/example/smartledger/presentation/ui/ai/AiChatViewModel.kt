@@ -46,6 +46,7 @@ class AiChatViewModel @Inject constructor(
     private var categories: List<CategoryEntity> = emptyList()
     private var accounts: List<AccountEntity> = emptyList()
     private var pendingTransaction: PendingTransaction? = null
+    private var pendingBatchTransactions: List<PendingTransaction> = emptyList()
 
     init {
         loadInitialData()
@@ -189,9 +190,128 @@ class AiChatViewModel @Inject constructor(
                 generateRecentTransactionsResponse()
             }
 
+            // 批量导入 - 检测多行或多条记录
+            content.contains("\n") || content.count { it == '，' || it == ',' || it == '；' || it == ';' } >= 2 -> {
+                tryParseBatchTransactions(content)
+            }
+
+            // 确认批量记账
+            pendingBatchTransactions.isNotEmpty() && (lowerContent.contains("全部确认") || lowerContent.contains("确认全部")) -> {
+                confirmBatchTransactions()
+                ""
+            }
+
             // 尝试解析记账
             else -> {
                 tryParseAndRecordTransaction(content)
+            }
+        }
+    }
+
+    /**
+     * 批量解析多条交易记录
+     */
+    private fun tryParseBatchTransactions(content: String): String {
+        // 按换行、中文分号、英文分号分割
+        val lines = content.split(Regex("[\\n；;]"))
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && it.length > 2 }
+
+        if (lines.size < 2) {
+            return tryParseAndRecordTransaction(content)
+        }
+
+        val successList = mutableListOf<PendingTransaction>()
+        val failureList = mutableListOf<String>()
+
+        lines.forEach { line ->
+            val result = transactionParser.parse(line, categories)
+            when (result) {
+                is ParseResult.Success -> {
+                    val data = result.data
+                    successList.add(PendingTransaction(
+                        amount = data.amount,
+                        type = data.type,
+                        categoryId = data.categoryId,
+                        categoryName = data.categoryName,
+                        note = data.note
+                    ))
+                }
+                is ParseResult.Failure -> {
+                    failureList.add(line)
+                }
+            }
+        }
+
+        if (successList.isEmpty()) {
+            return "抱歉，未能识别出有效的记录。\n\n" +
+                    "批量导入格式示例：\n" +
+                    "午餐35元\n" +
+                    "打车15元\n" +
+                    "买水果28元"
+        }
+
+        pendingBatchTransactions = successList
+        _uiState.update { it.copy(showBatchConfirmation = true) }
+
+        return buildString {
+            appendLine("📋 **批量识别结果**")
+            appendLine()
+            appendLine("成功识别 ${successList.size} 条记录：")
+            appendLine()
+            successList.forEachIndexed { index, txn ->
+                val typeIcon = if (txn.type == TransactionType.EXPENSE) "💸" else "💰"
+                appendLine("${index + 1}. $typeIcon ¥${String.format("%.2f", txn.amount)} - ${txn.categoryName}")
+            }
+            if (failureList.isNotEmpty()) {
+                appendLine()
+                appendLine("⚠️ 未能识别 ${failureList.size} 条：")
+                failureList.forEach { appendLine("• $it") }
+            }
+            appendLine()
+            append("回复「全部确认」保存所有记录，或「取消」放弃")
+        }
+    }
+
+    /**
+     * 确认批量记账
+     */
+    private fun confirmBatchTransactions() {
+        val transactions = pendingBatchTransactions
+        if (transactions.isEmpty()) return
+
+        viewModelScope.launch {
+            val account = accounts.firstOrNull()
+            if (account != null) {
+                var successCount = 0
+                transactions.forEach { pending ->
+                    try {
+                        val transaction = TransactionEntity(
+                            amount = pending.amount,
+                            type = pending.type,
+                            categoryId = pending.categoryId ?: 0L,
+                            accountId = account.id,
+                            date = System.currentTimeMillis(),
+                            note = pending.note
+                        )
+                        transactionRepository.insertTransaction(transaction)
+
+                        // 更新账户余额
+                        val balanceChange = if (pending.type == TransactionType.EXPENSE) -pending.amount else pending.amount
+                        accountRepository.updateAccountBalance(account.id, account.balance + balanceChange)
+
+                        successCount++
+                    } catch (e: Exception) {
+                        // 忽略单条错误
+                    }
+                }
+
+                pendingBatchTransactions = emptyList()
+                _uiState.update { it.copy(showBatchConfirmation = false) }
+                addMessage(
+                    content = "✅ 批量记账完成！\n\n成功保存 $successCount 条记录。",
+                    isFromUser = false
+                )
             }
         }
     }
@@ -456,7 +576,8 @@ class AiChatViewModel @Inject constructor(
 data class AiChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
-    val showConfirmation: Boolean = false
+    val showConfirmation: Boolean = false,
+    val showBatchConfirmation: Boolean = false
 )
 
 /**
