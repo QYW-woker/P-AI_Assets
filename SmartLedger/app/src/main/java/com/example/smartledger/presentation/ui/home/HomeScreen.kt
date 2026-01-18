@@ -389,7 +389,7 @@ private fun BudgetProgressCard(
         Spacer(modifier = Modifier.height(AppDimens.SpacingM))
 
         LinearProgressIndicator(
-            progress = progress,
+            progress = { progress },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(AppDimens.ProgressBarHeight)

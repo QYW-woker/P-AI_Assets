@@ -179,7 +179,7 @@ private fun GoalCard(
             Spacer(modifier = Modifier.height(AppDimens.SpacingL))
 
             LinearProgressIndicator(
-                progress = progress,
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(AppDimens.ProgressBarHeight)

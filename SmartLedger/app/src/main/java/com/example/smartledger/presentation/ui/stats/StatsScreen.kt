@@ -442,7 +442,7 @@ private fun CategoryRankingItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = progress,
+                        progress = { progress },
                         modifier = Modifier
                             .weight(1f)
                             .height(6.dp)

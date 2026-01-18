@@ -229,7 +229,7 @@ private fun GoalDetailContent(
 
                 // 进度条
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(12.dp)
