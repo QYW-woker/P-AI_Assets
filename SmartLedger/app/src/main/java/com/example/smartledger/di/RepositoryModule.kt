@@ -4,11 +4,13 @@ import com.example.smartledger.data.repository.AccountRepositoryImpl
 import com.example.smartledger.data.repository.BudgetRepositoryImpl
 import com.example.smartledger.data.repository.CategoryRepositoryImpl
 import com.example.smartledger.data.repository.GoalRepositoryImpl
+import com.example.smartledger.data.repository.RecurringTransactionRepositoryImpl
 import com.example.smartledger.data.repository.TransactionRepositoryImpl
 import com.example.smartledger.domain.repository.AccountRepository
 import com.example.smartledger.domain.repository.BudgetRepository
 import com.example.smartledger.domain.repository.CategoryRepository
 import com.example.smartledger.domain.repository.GoalRepository
+import com.example.smartledger.domain.repository.RecurringTransactionRepository
 import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.Binds
 import dagger.Module
@@ -49,4 +51,10 @@ abstract class RepositoryModule {
     abstract fun bindGoalRepository(
         goalRepositoryImpl: GoalRepositoryImpl
     ): GoalRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindRecurringTransactionRepository(
+        recurringTransactionRepositoryImpl: RecurringTransactionRepositoryImpl
+    ): RecurringTransactionRepository
 }

@@ -8,6 +8,7 @@ import com.example.smartledger.data.local.dao.CategoryDao
 import com.example.smartledger.data.local.dao.AccountDao
 import com.example.smartledger.data.local.dao.BudgetDao
 import com.example.smartledger.data.local.dao.GoalDao
+import com.example.smartledger.data.local.dao.RecurringTransactionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -82,5 +83,14 @@ object DatabaseModule {
     @Singleton
     fun provideGoalDao(database: AppDatabase): GoalDao {
         return database.goalDao()
+    }
+
+    /**
+     * 提供RecurringTransactionDao
+     */
+    @Provides
+    @Singleton
+    fun provideRecurringTransactionDao(database: AppDatabase): RecurringTransactionDao {
+        return database.recurringTransactionDao()
     }
 }

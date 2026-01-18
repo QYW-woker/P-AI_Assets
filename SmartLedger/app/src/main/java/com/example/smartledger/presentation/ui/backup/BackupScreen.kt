@@ -90,7 +90,8 @@ fun BackupScreen(
             item {
                 ExportOptionsCard(
                     onExportJson = { viewModel.exportJson() },
-                    onExportCsv = { viewModel.exportCsv() }
+                    onExportCsv = { viewModel.exportCsv() },
+                    isExporting = uiState.isExporting
                 )
             }
 
@@ -208,7 +209,8 @@ private fun BackupActionsCard(
 @Composable
 private fun ExportOptionsCard(
     onExportJson: () -> Unit,
-    onExportCsv: () -> Unit
+    onExportCsv: () -> Unit,
+    isExporting: Boolean = false
 ) {
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Column {
@@ -218,13 +220,22 @@ private fun ExportOptionsCard(
                 color = AppColors.TextPrimary
             )
 
+            Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+
+            Text(
+                text = "文件保存位置: Documents/SmartLedger/",
+                style = AppTypography.Caption,
+                color = AppColors.TextMuted
+            )
+
             Spacer(modifier = Modifier.height(AppDimens.SpacingL))
 
             ExportOption(
                 icon = Icons.Filled.FileDownload,
                 title = "导出JSON",
                 description = "完整数据备份，可用于恢复",
-                onClick = onExportJson
+                onClick = onExportJson,
+                enabled = !isExporting
             )
 
             Divider(color = AppColors.Divider)
@@ -232,8 +243,9 @@ private fun ExportOptionsCard(
             ExportOption(
                 icon = Icons.Filled.FileDownload,
                 title = "导出CSV",
-                description = "可用Excel打开查看",
-                onClick = onExportCsv
+                description = "标准CSV格式，可用Excel/Numbers打开",
+                onClick = onExportCsv,
+                enabled = !isExporting
             )
         }
     }
@@ -247,7 +259,8 @@ private fun ExportOption(
     icon: ImageVector,
     title: String,
     description: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -259,7 +272,7 @@ private fun ExportOption(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(24.dp),
-            tint = AppColors.Info
+            tint = if (enabled) AppColors.Info else AppColors.TextMuted
         )
 
         Spacer(modifier = Modifier.padding(AppDimens.SpacingM))
@@ -268,7 +281,7 @@ private fun ExportOption(
             Text(
                 text = title,
                 style = AppTypography.BodyMedium,
-                color = AppColors.TextPrimary
+                color = if (enabled) AppColors.TextPrimary else AppColors.TextMuted
             )
             Text(
                 text = description,
@@ -280,8 +293,9 @@ private fun ExportOption(
         OutlinedAppButton(
             text = "导出",
             onClick = onClick,
-            borderColor = AppColors.Info,
-            contentColor = AppColors.Info
+            borderColor = if (enabled) AppColors.Info else AppColors.TextMuted,
+            contentColor = if (enabled) AppColors.Info else AppColors.TextMuted,
+            enabled = enabled
         )
     }
 }

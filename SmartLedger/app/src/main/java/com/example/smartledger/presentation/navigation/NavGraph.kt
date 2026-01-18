@@ -38,6 +38,9 @@ import com.example.smartledger.presentation.ui.category.CategoryManagementScreen
 import com.example.smartledger.presentation.ui.search.SearchScreen
 import com.example.smartledger.presentation.ui.transactions.TransactionDetailScreen
 import com.example.smartledger.presentation.ui.transactions.TransactionListScreen
+import com.example.smartledger.presentation.ui.health.FinancialHealthScreen
+import com.example.smartledger.presentation.ui.report.ReportScreen
+import com.example.smartledger.presentation.ui.recurring.RecurringTransactionScreen
 
 /**
  * 应用主导航Host
@@ -155,7 +158,10 @@ fun SmartLedgerNavHost(
                     onNavigateToGoals = { navController.navigate(Screen.Goals.route) },
                     onNavigateToBackup = { navController.navigate(Screen.Backup.route) },
                     onNavigateToAiChat = { navController.navigate(Screen.AiChat.route) },
-                    onNavigateToCategoryManage = { navController.navigate(Screen.CategoryManage.route) }
+                    onNavigateToCategoryManage = { navController.navigate(Screen.CategoryManage.route) },
+                    onNavigateToFinancialHealth = { navController.navigate(Screen.FinancialHealth.route) },
+                    onNavigateToReport = { navController.navigate(Screen.Report.route) },
+                    onNavigateToRecurring = { navController.navigate(Screen.RecurringTransaction.route) }
                 )
             }
 
@@ -285,6 +291,27 @@ fun SmartLedgerNavHost(
                     onNavigateToTransactionDetail = { id ->
                         navController.navigate(Screen.TransactionDetail.createRoute(id))
                     }
+                )
+            }
+
+            // 财务健康诊断
+            composable(Screen.FinancialHealth.route) {
+                FinancialHealthScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 报告
+            composable(Screen.Report.route) {
+                ReportScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 固定收支
+            composable(Screen.RecurringTransaction.route) {
+                RecurringTransactionScreen(
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
         }

@@ -19,9 +19,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material3.AlertDialog
@@ -63,6 +66,9 @@ fun ProfileScreen(
     onNavigateToBackup: () -> Unit,
     onNavigateToAiChat: () -> Unit,
     onNavigateToCategoryManage: () -> Unit = {},
+    onNavigateToFinancialHealth: () -> Unit = {},
+    onNavigateToReport: () -> Unit = {},
+    onNavigateToRecurring: () -> Unit = {},
     viewModel: ProfileViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -137,6 +143,18 @@ fun ProfileScreen(
                     )
 
                     ProfileMenuItem(
+                        icon = Icons.Filled.Repeat,
+                        title = "固定收支",
+                        subtitle = "管理定期自动记账",
+                        onClick = onNavigateToRecurring
+                    )
+
+                    Divider(
+                        modifier = Modifier.padding(start = 40.dp),
+                        color = AppColors.Divider
+                    )
+
+                    ProfileMenuItem(
                         icon = Icons.Outlined.SmartToy,
                         title = "AI助手",
                         subtitle = "智能记账，轻松管理财务",
@@ -153,6 +171,32 @@ fun ProfileScreen(
                         title = "分类管理",
                         subtitle = "自定义收支分类",
                         onClick = onNavigateToCategoryManage
+                    )
+                }
+            }
+
+            // 分析与报告
+            item {
+                AppCard(
+                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                ) {
+                    ProfileMenuItem(
+                        icon = Icons.Filled.HealthAndSafety,
+                        title = "财务健康诊断",
+                        subtitle = "全面分析您的财务状况",
+                        onClick = onNavigateToFinancialHealth
+                    )
+
+                    Divider(
+                        modifier = Modifier.padding(start = 40.dp),
+                        color = AppColors.Divider
+                    )
+
+                    ProfileMenuItem(
+                        icon = Icons.Filled.Assessment,
+                        title = "财务报告",
+                        subtitle = "周报、月报、年报",
+                        onClick = onNavigateToReport
                     )
                 }
             }

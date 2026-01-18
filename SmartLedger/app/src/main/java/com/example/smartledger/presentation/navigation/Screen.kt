@@ -62,6 +62,15 @@ sealed class Screen(val route: String) {
     // AI助手
     data object AiChat : Screen("ai/chat")
 
+    // 财务健康
+    data object FinancialHealth : Screen("financial-health")
+
+    // 报告
+    data object Report : Screen("report")
+
+    // 固定收支
+    data object RecurringTransaction : Screen("recurring-transaction")
+
     // 设置
     data object Settings : Screen("settings")
     data object SettingsCurrency : Screen("settings/currency")
