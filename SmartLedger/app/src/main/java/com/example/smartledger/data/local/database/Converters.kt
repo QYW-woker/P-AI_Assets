@@ -3,6 +3,7 @@ package com.example.smartledger.data.local.database
 import androidx.room.TypeConverter
 import com.example.smartledger.data.local.entity.AccountType
 import com.example.smartledger.data.local.entity.BudgetPeriod
+import com.example.smartledger.data.local.entity.HoldingType
 import com.example.smartledger.data.local.entity.RecurringFrequency
 import com.example.smartledger.data.local.entity.TransactionType
 
@@ -53,6 +54,17 @@ class Converters {
     @TypeConverter
     fun toRecurringFrequency(value: String): RecurringFrequency {
         return RecurringFrequency.valueOf(value)
+    }
+
+    // HoldingType转换
+    @TypeConverter
+    fun fromHoldingType(type: HoldingType): String {
+        return type.name
+    }
+
+    @TypeConverter
+    fun toHoldingType(value: String): HoldingType {
+        return HoldingType.valueOf(value)
     }
 
     // List<String>转换（用于tags等字段）

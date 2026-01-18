@@ -4,12 +4,16 @@ import com.example.smartledger.data.repository.AccountRepositoryImpl
 import com.example.smartledger.data.repository.BudgetRepositoryImpl
 import com.example.smartledger.data.repository.CategoryRepositoryImpl
 import com.example.smartledger.data.repository.GoalRepositoryImpl
+import com.example.smartledger.data.repository.InvestmentHoldingRepositoryImpl
+import com.example.smartledger.data.repository.MonthlySnapshotRepositoryImpl
 import com.example.smartledger.data.repository.RecurringTransactionRepositoryImpl
 import com.example.smartledger.data.repository.TransactionRepositoryImpl
 import com.example.smartledger.domain.repository.AccountRepository
 import com.example.smartledger.domain.repository.BudgetRepository
 import com.example.smartledger.domain.repository.CategoryRepository
 import com.example.smartledger.domain.repository.GoalRepository
+import com.example.smartledger.domain.repository.InvestmentHoldingRepository
+import com.example.smartledger.domain.repository.MonthlySnapshotRepository
 import com.example.smartledger.domain.repository.RecurringTransactionRepository
 import com.example.smartledger.domain.repository.TransactionRepository
 import dagger.Binds
@@ -57,4 +61,16 @@ abstract class RepositoryModule {
     abstract fun bindRecurringTransactionRepository(
         recurringTransactionRepositoryImpl: RecurringTransactionRepositoryImpl
     ): RecurringTransactionRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMonthlySnapshotRepository(
+        monthlySnapshotRepositoryImpl: MonthlySnapshotRepositoryImpl
+    ): MonthlySnapshotRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInvestmentHoldingRepository(
+        investmentHoldingRepositoryImpl: InvestmentHoldingRepositoryImpl
+    ): InvestmentHoldingRepository
 }

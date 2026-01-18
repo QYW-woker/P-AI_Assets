@@ -71,6 +71,12 @@ sealed class Screen(val route: String) {
     // 固定收支
     data object RecurringTransaction : Screen("recurring-transaction")
 
+    // 历史资产记录
+    data object AssetHistory : Screen("asset-history")
+
+    // 投资明细
+    data object InvestmentHolding : Screen("investment-holding")
+
     // 设置
     data object Settings : Screen("settings")
     data object SettingsCurrency : Screen("settings/currency")

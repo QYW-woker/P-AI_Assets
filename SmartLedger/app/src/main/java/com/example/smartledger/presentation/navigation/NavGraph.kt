@@ -39,6 +39,8 @@ import com.example.smartledger.presentation.ui.search.SearchScreen
 import com.example.smartledger.presentation.ui.transactions.TransactionDetailScreen
 import com.example.smartledger.presentation.ui.transactions.TransactionListScreen
 import com.example.smartledger.presentation.ui.health.FinancialHealthScreen
+import com.example.smartledger.presentation.ui.history.AssetHistoryScreen
+import com.example.smartledger.presentation.ui.investment.InvestmentHoldingScreen
 import com.example.smartledger.presentation.ui.report.ReportScreen
 import com.example.smartledger.presentation.ui.recurring.RecurringTransactionScreen
 
@@ -147,7 +149,9 @@ fun SmartLedgerNavHost(
                         navController.navigate(Screen.AccountDetail.createRoute(id))
                     },
                     onNavigateToAccountManage = { navController.navigate(Screen.AccountManage.route) },
-                    onNavigateToAccountAdd = { navController.navigate(Screen.AccountManage.route) }
+                    onNavigateToAccountAdd = { navController.navigate(Screen.AccountManage.route) },
+                    onNavigateToAssetHistory = { navController.navigate(Screen.AssetHistory.route) },
+                    onNavigateToInvestmentHolding = { navController.navigate(Screen.InvestmentHolding.route) }
                 )
             }
 
@@ -311,6 +315,20 @@ fun SmartLedgerNavHost(
             // 固定收支
             composable(Screen.RecurringTransaction.route) {
                 RecurringTransactionScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 历史资产记录
+            composable(Screen.AssetHistory.route) {
+                AssetHistoryScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 投资明细
+            composable(Screen.InvestmentHolding.route) {
+                InvestmentHoldingScreen(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

@@ -70,6 +70,8 @@ fun AssetsScreen(
     onNavigateToAccountDetail: (Long) -> Unit,
     onNavigateToAccountManage: () -> Unit,
     onNavigateToAccountAdd: () -> Unit = {},
+    onNavigateToAssetHistory: () -> Unit = {},
+    onNavigateToInvestmentHolding: () -> Unit = {},
     viewModel: AssetsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -148,6 +150,40 @@ fun AssetsScreen(
                             score = uiState.healthScore,
                             modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                         )
+                    }
+
+                    // 快捷入口：历史资产记录
+                    item {
+                        AppCard(
+                            modifier = Modifier
+                                .padding(horizontal = AppDimens.PaddingL)
+                                .clickable { onNavigateToAssetHistory() }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "历史资产记录",
+                                        style = AppTypography.BodyMedium,
+                                        color = AppColors.TextPrimary
+                                    )
+                                    Text(
+                                        text = "查看每月资产快照与变化趋势",
+                                        style = AppTypography.Caption,
+                                        color = AppColors.TextMuted
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = AppColors.TextMuted,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
 
                     item {
@@ -253,6 +289,40 @@ fun AssetsScreen(
                             returnRate = uiState.investmentReturnRate,
                             modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                         )
+                    }
+
+                    // 快捷入口：投资明细
+                    item {
+                        AppCard(
+                            modifier = Modifier
+                                .padding(horizontal = AppDimens.PaddingL)
+                                .clickable { onNavigateToInvestmentHolding() }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "投资明细",
+                                        style = AppTypography.BodyMedium,
+                                        color = AppColors.TextPrimary
+                                    )
+                                    Text(
+                                        text = "查看具体持仓与收益详情",
+                                        style = AppTypography.Caption,
+                                        color = AppColors.TextMuted
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowForward,
+                                    contentDescription = null,
+                                    tint = AppColors.TextMuted,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
                     }
 
                     // 投资账户列表

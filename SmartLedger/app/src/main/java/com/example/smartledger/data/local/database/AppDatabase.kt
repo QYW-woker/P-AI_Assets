@@ -7,12 +7,16 @@ import com.example.smartledger.data.local.dao.AccountDao
 import com.example.smartledger.data.local.dao.BudgetDao
 import com.example.smartledger.data.local.dao.CategoryDao
 import com.example.smartledger.data.local.dao.GoalDao
+import com.example.smartledger.data.local.dao.InvestmentHoldingDao
+import com.example.smartledger.data.local.dao.MonthlySnapshotDao
 import com.example.smartledger.data.local.dao.RecurringTransactionDao
 import com.example.smartledger.data.local.dao.TransactionDao
 import com.example.smartledger.data.local.entity.AccountEntity
 import com.example.smartledger.data.local.entity.BudgetEntity
 import com.example.smartledger.data.local.entity.CategoryEntity
 import com.example.smartledger.data.local.entity.GoalEntity
+import com.example.smartledger.data.local.entity.InvestmentHoldingEntity
+import com.example.smartledger.data.local.entity.MonthlySnapshotEntity
 import com.example.smartledger.data.local.entity.RecurringTransactionEntity
 import com.example.smartledger.data.local.entity.TransactionEntity
 
@@ -26,9 +30,11 @@ import com.example.smartledger.data.local.entity.TransactionEntity
         AccountEntity::class,
         BudgetEntity::class,
         GoalEntity::class,
-        RecurringTransactionEntity::class
+        RecurringTransactionEntity::class,
+        MonthlySnapshotEntity::class,
+        InvestmentHoldingEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -40,6 +46,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun budgetDao(): BudgetDao
     abstract fun goalDao(): GoalDao
     abstract fun recurringTransactionDao(): RecurringTransactionDao
+    abstract fun monthlySnapshotDao(): MonthlySnapshotDao
+    abstract fun investmentHoldingDao(): InvestmentHoldingDao
 
     companion object {
         const val DATABASE_NAME = "smart_ledger.db"
