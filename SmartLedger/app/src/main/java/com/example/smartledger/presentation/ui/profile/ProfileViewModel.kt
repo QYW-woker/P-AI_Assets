@@ -9,7 +9,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -40,7 +39,7 @@ class ProfileViewModel @Inject constructor(
                 val username = prefs.getString("username", "用户") ?: "用户"
 
                 // 加载统计数据
-                val transactions = transactionRepository.getAllTransactions().first()
+                val transactions = transactionRepository.getAllTransactions()
                 val totalCount = transactions.size
 
                 // 计算记账天数
