@@ -33,8 +33,17 @@ class CategoryManagementViewModel @Inject constructor(
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                val expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
-                val incomeCategories = categoryRepository.getCategoriesByType(TransactionType.INCOME).first()
+                // 先检查是否有分类，如果没有则初始化默认分类
+                var expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                var incomeCategories = categoryRepository.getCategoriesByType(TransactionType.INCOME).first()
+
+                if (expenseCategories.isEmpty() && incomeCategories.isEmpty()) {
+                    // 初始化默认分类
+                    categoryRepository.initDefaultCategories()
+                    // 重新加载
+                    expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                    incomeCategories = categoryRepository.getCategoriesByType(TransactionType.INCOME).first()
+                }
 
                 _uiState.value = CategoryManagementUiState(
                     expenseCategories = expenseCategories.map { it.toUiModel() },

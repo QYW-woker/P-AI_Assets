@@ -44,8 +44,13 @@ class RecordViewModel @Inject constructor(
             try {
                 val today = SimpleDateFormat("MM月dd日", Locale.CHINA).format(Date())
 
-                // 加载分类
-                val expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                // 加载分类，如果没有则初始化
+                var expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                if (expenseCategories.isEmpty()) {
+                    categoryRepository.initDefaultCategories()
+                    expenseCategories = categoryRepository.getCategoriesByType(TransactionType.EXPENSE).first()
+                }
+
                 val categoryUiModels = expenseCategories.map { category ->
                     CategoryUiModel(
                         id = category.id,
@@ -62,7 +67,7 @@ class RecordViewModel @Inject constructor(
                 _uiState.update {
                     it.copy(
                         dateText = today,
-                        categories = categoryUiModels.ifEmpty { getDefaultExpenseCategories() },
+                        categories = categoryUiModels,
                         accountName = defaultAccount?.name ?: "现金",
                         accounts = accounts.map { acc ->
                             AccountUiModel(acc.id, acc.name, acc.icon)
@@ -95,7 +100,12 @@ class RecordViewModel @Inject constructor(
                 else -> TransactionType.EXPENSE
             }
 
-            val categories = categoryRepository.getCategoriesByType(transactionType).first()
+            var categories = categoryRepository.getCategoriesByType(transactionType).first()
+            if (categories.isEmpty()) {
+                categoryRepository.initDefaultCategories()
+                categories = categoryRepository.getCategoriesByType(transactionType).first()
+            }
+
             val categoryUiModels = categories.map { category ->
                 CategoryUiModel(
                     id = category.id,
@@ -105,12 +115,10 @@ class RecordViewModel @Inject constructor(
                 )
             }
 
-            val defaultCategories = if (type == 1) getDefaultIncomeCategories() else getDefaultExpenseCategories()
-
             _uiState.update {
                 it.copy(
                     transactionType = type,
-                    categories = categoryUiModels.ifEmpty { defaultCategories },
+                    categories = categoryUiModels,
                     selectedCategoryId = null
                 )
             }

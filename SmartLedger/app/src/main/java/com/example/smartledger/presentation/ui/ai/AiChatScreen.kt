@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -121,7 +120,6 @@ fun AiChatScreen(
                         inputText = ""
                     }
                 },
-                onVoiceClick = { /* TODO: 语音输入 */ },
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppColors.Card)
@@ -244,17 +242,18 @@ private fun ChatInputBar(
     value: String,
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
-    onVoiceClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier,
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Bottom
     ) {
         TextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 48.dp, max = 120.dp),
             placeholder = {
                 Text(
                     text = "说点什么，如\"午餐花了35元\"",
@@ -269,24 +268,17 @@ private fun ChatInputBar(
                 unfocusedIndicatorColor = Color.Transparent,
                 cursorColor = AppColors.Accent
             ),
-            shape = AppShapes.Full,
+            shape = AppShapes.Large,
             textStyle = AppTypography.BodyMedium.copy(color = AppColors.TextPrimary),
-            singleLine = true
+            maxLines = 4
         )
 
         Spacer(modifier = Modifier.width(AppDimens.SpacingS))
 
-        IconButton(onClick = onVoiceClick) {
-            Icon(
-                imageVector = Icons.Filled.Mic,
-                contentDescription = "语音",
-                tint = AppColors.TextSecondary
-            )
-        }
-
         IconButton(
             onClick = onSendClick,
-            enabled = value.isNotBlank()
+            enabled = value.isNotBlank(),
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,

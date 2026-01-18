@@ -1,6 +1,7 @@
 package com.example.smartledger.presentation.ui.assets
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -130,7 +131,8 @@ fun AssetsScreen(
                             Text(
                                 text = "管理",
                                 style = AppTypography.LabelMedium,
-                                color = AppColors.Accent
+                                color = AppColors.Accent,
+                                modifier = Modifier.clickable { onNavigateToAccountManage() }
                             )
                         }
                     }
