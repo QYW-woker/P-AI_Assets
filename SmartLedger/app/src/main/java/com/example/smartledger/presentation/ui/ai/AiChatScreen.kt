@@ -1,5 +1,12 @@
 package com.example.smartledger.presentation.ui.ai
 
+import android.Manifest
+import android.content.Intent
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +30,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -42,6 +50,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.smartledger.presentation.ui.components.AppTopBarWithBack
@@ -49,6 +58,7 @@ import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import java.util.Locale
 
 /**
  * AI聊天页面
@@ -62,6 +72,31 @@ fun AiChatScreen(
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
     val listState = rememberLazyListState()
+    val context = LocalContext.current
+    var isListening by remember { mutableStateOf(false) }
+
+    // 语音识别结果处理
+    val speechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        isListening = false
+        val data = result.data
+        val results = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        if (!results.isNullOrEmpty()) {
+            inputText = results[0]
+        }
+    }
+
+    // 权限请求
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startSpeechRecognition(context, speechLauncher) { isListening = true }
+        } else {
+            Toast.makeText(context, "需要录音权限才能使用语音输入", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -121,12 +156,41 @@ fun AiChatScreen(
                         inputText = ""
                     }
                 },
+                onVoiceClick = {
+                    if (SpeechRecognizer.isRecognitionAvailable(context)) {
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    } else {
+                        Toast.makeText(context, "设备不支持语音识别", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                isListening = isListening,
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppColors.Card)
                     .padding(AppDimens.PaddingL)
             )
         }
+    }
+}
+
+/**
+ * 启动语音识别
+ */
+private fun startSpeechRecognition(
+    context: android.content.Context,
+    launcher: androidx.activity.result.ActivityResultLauncher<Intent>,
+    onStart: () -> Unit
+) {
+    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        putExtra(RecognizerIntent.EXTRA_PROMPT, "请说出您要记录的内容...")
+    }
+    try {
+        onStart()
+        launcher.launch(intent)
+    } catch (e: Exception) {
+        Toast.makeText(context, "无法启动语音识别", Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -243,10 +307,13 @@ private fun ChatInputBar(
     value: String,
     onValueChange: (String) -> Unit,
     onSendClick: () -> Unit,
+    onVoiceClick: () -> Unit,
+    isListening: Boolean,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier,
+        modifier = modifier
+            .heightIn(min = 56.dp, max = 140.dp),
         verticalAlignment = Alignment.Bottom
     ) {
         TextField(
@@ -254,12 +321,12 @@ private fun ChatInputBar(
             onValueChange = onValueChange,
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 48.dp, max = 120.dp),
+                .heightIn(min = 56.dp, max = 140.dp),
             placeholder = {
                 Text(
-                    text = "说点什么，如\"午餐花了35元\"",
+                    text = if (isListening) "正在聆听..." else "说点什么，如\"午餐花了35元\"",
                     style = AppTypography.BodyMedium,
-                    color = AppColors.TextMuted
+                    color = if (isListening) AppColors.Accent else AppColors.TextMuted
                 )
             },
             colors = TextFieldDefaults.colors(
@@ -271,11 +338,25 @@ private fun ChatInputBar(
             ),
             shape = AppShapes.Large,
             textStyle = AppTypography.BodyMedium.copy(color = AppColors.TextPrimary),
-            maxLines = 4
+            maxLines = 4,
+            singleLine = false
         )
 
-        Spacer(modifier = Modifier.width(AppDimens.SpacingS))
+        Spacer(modifier = Modifier.width(AppDimens.SpacingXS))
 
+        // 语音按钮
+        IconButton(
+            onClick = onVoiceClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Mic,
+                contentDescription = "语音输入",
+                tint = if (isListening) AppColors.Accent else AppColors.TextMuted
+            )
+        }
+
+        // 发送按钮
         IconButton(
             onClick = onSendClick,
             enabled = value.isNotBlank(),

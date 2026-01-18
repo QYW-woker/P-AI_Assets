@@ -20,20 +20,31 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.smartledger.presentation.ui.components.AppCard
 import com.example.smartledger.presentation.ui.components.AppTopBar
 import com.example.smartledger.presentation.ui.theme.AppColors
@@ -51,8 +62,24 @@ fun ProfileScreen(
     onNavigateToGoals: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToAiChat: () -> Unit,
-    onNavigateToCategoryManage: () -> Unit = {}
+    onNavigateToCategoryManage: () -> Unit = {},
+    viewModel: ProfileViewModel = hiltViewModel()
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    var showEditDialog by remember { mutableStateOf(false) }
+
+    // 编辑用户名对话框
+    if (showEditDialog) {
+        EditUsernameDialog(
+            currentUsername = uiState.username,
+            onDismiss = { showEditDialog = false },
+            onConfirm = { newUsername ->
+                viewModel.updateUsername(newUsername)
+                showEditDialog = false
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             AppTopBar(title = "我的")
@@ -68,6 +95,10 @@ fun ProfileScreen(
             // 用户信息卡片
             item {
                 UserInfoCard(
+                    username = uiState.username,
+                    daysSinceStart = uiState.daysSinceStart,
+                    totalTransactions = uiState.totalTransactions,
+                    onEditClick = { showEditDialog = true },
                     modifier = Modifier.padding(
                         start = AppDimens.PaddingL,
                         end = AppDimens.PaddingL,
@@ -177,6 +208,10 @@ fun ProfileScreen(
  */
 @Composable
 private fun UserInfoCard(
+    username: String,
+    daysSinceStart: Int,
+    totalTransactions: Int,
+    onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     AppCard(modifier = modifier.fillMaxWidth()) {
@@ -193,7 +228,7 @@ private fun UserInfoCard(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "U",
+                    text = username.firstOrNull()?.uppercase() ?: "U",
                     style = AppTypography.TitleLarge,
                     color = AppColors.Accent
                 )
@@ -201,21 +236,77 @@ private fun UserInfoCard(
 
             Spacer(modifier = Modifier.width(AppDimens.SpacingL))
 
-            Column {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "用户",
+                    text = username,
                     style = AppTypography.TitleMedium,
                     color = AppColors.TextPrimary
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "记账 30 天 | 共 156 笔",
+                    text = if (daysSinceStart > 0) "记账 $daysSinceStart 天 | 共 $totalTransactions 笔" else "开始记账吧",
                     style = AppTypography.Caption,
                     color = AppColors.TextMuted
                 )
             }
+
+            IconButton(onClick = onEditClick) {
+                Icon(
+                    imageVector = Icons.Filled.Edit,
+                    contentDescription = "编辑",
+                    tint = AppColors.TextMuted,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
         }
     }
+}
+
+/**
+ * 编辑用户名对话框
+ */
+@Composable
+private fun EditUsernameDialog(
+    currentUsername: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var username by remember { mutableStateOf(currentUsername) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "编辑用户名",
+                style = AppTypography.TitleMedium,
+                color = AppColors.TextPrimary
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("输入用户名", color = AppColors.TextMuted)
+                },
+                singleLine = true
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { onConfirm(username) },
+                enabled = username.isNotBlank()
+            ) {
+                Text("保存", color = AppColors.Accent)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消", color = AppColors.TextMuted)
+            }
+        }
+    )
 }
 
 /**
