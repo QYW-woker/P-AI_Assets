@@ -140,7 +140,8 @@ fun SmartLedgerNavHost(
                     onNavigateToAccountDetail = { id ->
                         navController.navigate(Screen.AccountDetail.createRoute(id))
                     },
-                    onNavigateToAccountManage = { navController.navigate(Screen.AccountManage.route) }
+                    onNavigateToAccountManage = { navController.navigate(Screen.AccountManage.route) },
+                    onNavigateToAccountAdd = { navController.navigate(Screen.AccountManage.route) }
                 )
             }
 
