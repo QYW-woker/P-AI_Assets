@@ -457,7 +457,7 @@ private fun DimensionScoreItem(
         )
 
         LinearProgressIndicator(
-            progress = { score / 100f },
+            progress = score / 100f,
             modifier = Modifier
                 .weight(1f)
                 .height(8.dp)

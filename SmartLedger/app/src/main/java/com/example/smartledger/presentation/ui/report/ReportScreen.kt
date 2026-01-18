@@ -465,7 +465,7 @@ private fun CategoryRankingCard(
 
                 // 进度条
                 LinearProgressIndicator(
-                    progress = { category.percent / 100f },
+                    progress = category.percent / 100f,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp)

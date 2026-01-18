@@ -207,7 +207,7 @@ class AiChatViewModel @Inject constructor(
         calendar.add(Calendar.MONTH, 1)
         val monthEnd = calendar.timeInMillis
 
-        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd).first()
+        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd)
         val categoryMap = categories.associateBy { it.id }
 
         // 获取上月数据用于对比
@@ -215,7 +215,7 @@ class AiChatViewModel @Inject constructor(
         val prevMonthStart = calendar.timeInMillis
         calendar.add(Calendar.MONTH, 1)
         val prevMonthEnd = calendar.timeInMillis
-        val prevTransactions = transactionRepository.getTransactionsByDateRange(prevMonthStart, prevMonthEnd).first()
+        val prevTransactions = transactionRepository.getTransactionsByDateRange(prevMonthStart, prevMonthEnd)
 
         val analysis = financialAnalyzer.generateMonthlyAnalysis(transactions, categoryMap, prevTransactions)
 
@@ -246,7 +246,7 @@ class AiChatViewModel @Inject constructor(
         calendar.add(Calendar.MONTH, 1)
         val monthEnd = calendar.timeInMillis
 
-        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd).first()
+        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd)
         val budgets = budgetRepository.getAllBudgets()
         val categoryMap = categories.associateBy { it.id }
 
@@ -344,10 +344,10 @@ class AiChatViewModel @Inject constructor(
         calendar.add(Calendar.MONTH, 1)
         val monthEnd = calendar.timeInMillis
 
-        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd).first()
+        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd)
         val categoryMap = categories.associateBy { it.id }
 
-        val analysis = financialAnalyzer.generateMonthlyAnalysis(transactions, categoryMap)
+        val analysis = financialAnalyzer.generateMonthlyAnalysis(transactions, categoryMap, emptyList())
 
         return buildString {
             appendLine("💡 **省钱建议**")
@@ -378,7 +378,7 @@ class AiChatViewModel @Inject constructor(
         today.add(Calendar.DAY_OF_MONTH, 1)
         val endOfDay = today.timeInMillis
 
-        val todayTransactions = transactionRepository.getTransactionsByDateRange(startOfDay, endOfDay).first()
+        val todayTransactions = transactionRepository.getTransactionsByDateRange(startOfDay, endOfDay)
         val categoryMap = categories.associateBy { it.id }
 
         if (todayTransactions.isEmpty()) {

@@ -29,8 +29,13 @@ object AppColors {
     val Background = Color(0xFFFAF7F2)     // 奶油白 - 页面背景
     val Surface = Color(0xFFFFFFFF)        // 纯白 - 卡片/表面
     val Card = Color(0xFFFFFFFF)           // 纯白 - 卡片
+    val CardBackground = Color(0xFFFFFFFF) // 纯白 - 卡片背景 (别名)
     val Border = Color(0xFFEEEBE6)         // 浅灰 - 边框
     val Divider = Color(0xFFF0EDE8)        // 分割线
+
+    // 收支色
+    val Income = Color(0xFF00D9A5)         // 青绿色 - 收入
+    val Expense = Color(0xFFE94560)        // 珊瑚红 - 支出
 
     // 文字色
     val TextPrimary = Color(0xFF1A1A2E)    // 主文字

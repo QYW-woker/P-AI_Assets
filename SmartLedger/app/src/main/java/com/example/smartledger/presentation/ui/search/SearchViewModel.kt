@@ -56,7 +56,7 @@ class SearchViewModel @Inject constructor(
                 calendar.add(Calendar.MONTH, -3)
                 val startDate = calendar.timeInMillis
 
-                allTransactions = transactionRepository.getTransactionsByDateRange(startDate, endDate).first()
+                allTransactions = transactionRepository.getTransactionsByDateRange(startDate, endDate)
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,

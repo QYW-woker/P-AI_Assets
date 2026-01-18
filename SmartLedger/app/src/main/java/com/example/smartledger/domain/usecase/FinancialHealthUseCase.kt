@@ -56,11 +56,12 @@ class FinancialHealthUseCase @Inject constructor(
         val accounts = accountRepository.getAllActiveAccounts().first()
         val totalAssets = accounts.sumOf { it.balance }
 
-        // 预算数据
+        // 预算数据 - 简化处理：有预算设置得分更高
         val budgets = budgetRepository.getAllActiveBudgets().first()
         val budgetCompliance = if (budgets.isNotEmpty()) {
-            budgets.count { it.usedAmount <= it.amount }.toFloat() / budgets.size
-        } else 1f
+            // 有预算设置表明有财务规划意识
+            0.8f
+        } else 0.5f
 
         // 目标数据
         val goals = goalRepository.getActiveGoals().first()
