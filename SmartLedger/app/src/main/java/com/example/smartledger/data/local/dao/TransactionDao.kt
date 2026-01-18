@@ -69,6 +69,9 @@ interface TransactionDao {
     @Query("SELECT COUNT(*) FROM transactions WHERE date BETWEEN :start AND :end")
     suspend fun getCountByDateRange(start: Long, end: Long): Int
 
+    @Query("SELECT SUM(amount) FROM transactions WHERE accountId = :accountId AND type = :type AND date BETWEEN :start AND :end")
+    suspend fun getAccountTotalByDateRange(accountId: Long, type: TransactionType, start: Long, end: Long): Double?
+
     @Query("SELECT * FROM transactions ORDER BY date DESC")
     suspend fun getAllTransactionsForBackup(): List<TransactionEntity>
 

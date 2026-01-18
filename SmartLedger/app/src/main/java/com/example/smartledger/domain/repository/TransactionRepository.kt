@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.Flow
 interface TransactionRepository {
 
     /**
-     * 获取指定日期范围内的交易记录
+     * 获取指定日期范围内的交易记录（Flow版本）
      */
-    fun getTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
+    fun getTransactionsByDateRangeFlow(startDate: Long, endDate: Long): Flow<List<TransactionEntity>>
 
     /**
      * 获取指定类型的交易记录
@@ -48,6 +48,21 @@ interface TransactionRepository {
      * 获取日期范围内的交易数量
      */
     suspend fun getCountByDateRange(startDate: Long, endDate: Long): Int
+
+    /**
+     * 获取日期范围内的交易数量（别名）
+     */
+    suspend fun getTransactionCountByDateRange(startDate: Long, endDate: Long): Int
+
+    /**
+     * 获取指定账户在日期范围内的总金额
+     */
+    suspend fun getAccountTotalByDateRange(accountId: Long, type: TransactionType, startDate: Long, endDate: Long): Double
+
+    /**
+     * 获取日期范围内的交易列表（非Flow）
+     */
+    suspend fun getTransactionsByDateRange(startDate: Long, endDate: Long): List<TransactionEntity>
 
     /**
      * 获取每日汇总（用于趋势图）

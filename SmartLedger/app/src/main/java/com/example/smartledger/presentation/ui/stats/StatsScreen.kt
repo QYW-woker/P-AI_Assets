@@ -1,6 +1,7 @@
 package com.example.smartledger.presentation.ui.stats
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,9 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -37,8 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.smartledger.data.local.entity.TransactionType
 import com.example.smartledger.presentation.ui.components.AppCard
 import com.example.smartledger.presentation.ui.components.AppTopBar
 import com.example.smartledger.presentation.ui.components.BarChart
@@ -61,6 +68,7 @@ import com.example.smartledger.utils.toColor
 @Composable
 fun StatsScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToTransactionDetail: (Long) -> Unit = {},
     viewModel: StatsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -87,12 +95,35 @@ fun StatsScreen(
                 )
             }
 
-            // 汇总卡片
+            // 周期标签
+            if (uiState.periodLabel.isNotEmpty()) {
+                item {
+                    Text(
+                        text = uiState.periodLabel,
+                        style = AppTypography.TitleMedium,
+                        color = AppColors.TextPrimary,
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
+            }
+
+            // 汇总卡片（带环比）
             item {
-                SummaryCards(
+                EnhancedSummaryCards(
                     income = uiState.totalIncome,
                     expense = uiState.totalExpense,
                     balance = uiState.balance,
+                    incomeChange = uiState.incomeChange,
+                    expenseChange = uiState.expenseChange,
+                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                )
+            }
+
+            // 月度概览指标
+            item {
+                MonthlyMetricsCard(
+                    transactionCount = uiState.transactionCount,
+                    avgDailyExpense = uiState.avgDailyExpense,
                     modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                 )
             }
@@ -111,28 +142,99 @@ fun StatsScreen(
                 ChartArea(
                     chartType = selectedChartType,
                     categoryRanking = uiState.categoryRanking,
-                    totalExpense = uiState.totalExpense,
+                    totalExpense = if (uiState.showIncome) uiState.totalIncome else uiState.totalExpense,
                     dailyTrend = uiState.dailyTrend,
                     modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
                 )
             }
 
-            // 分类排行
+            // 分类排行（带收入/支出切换）
             item {
-                Text(
-                    text = "分类排行",
-                    style = AppTypography.TitleSmall,
-                    color = AppColors.TextPrimary,
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
-                )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = AppDimens.PaddingL),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (uiState.showIncome) "收入分类排行" else "支出分类排行",
+                        style = AppTypography.TitleSmall,
+                        color = AppColors.TextPrimary
+                    )
+                    Text(
+                        text = if (uiState.showIncome) "查看支出" else "查看收入",
+                        style = AppTypography.LabelMedium,
+                        color = AppColors.Accent,
+                        modifier = Modifier.clickable { viewModel.toggleIncomeExpense() }
+                    )
+                }
             }
 
-            items(uiState.categoryRanking) { item ->
-                CategoryRankingItem(
-                    item = item,
-                    maxAmount = uiState.categoryRanking.firstOrNull()?.amount ?: 1.0,
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
-                )
+            if (uiState.categoryRanking.isEmpty()) {
+                item {
+                    AppCard(modifier = Modifier.padding(horizontal = AppDimens.PaddingL)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(AppDimens.PaddingL),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "暂无数据",
+                                style = AppTypography.BodyMedium,
+                                color = AppColors.TextMuted
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(uiState.categoryRanking) { item ->
+                    CategoryRankingItem(
+                        item = item,
+                        maxAmount = uiState.categoryRanking.firstOrNull()?.amount ?: 1.0,
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
+            }
+
+            // 账户变动
+            if (uiState.accountChanges.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "账户变动",
+                        style = AppTypography.TitleSmall,
+                        color = AppColors.TextPrimary,
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
+
+                items(uiState.accountChanges) { account ->
+                    AccountChangeItem(
+                        account = account,
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
+            }
+
+            // 最近交易
+            if (uiState.recentTransactions.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "最近交易",
+                        style = AppTypography.TitleSmall,
+                        color = AppColors.TextPrimary,
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
+
+                items(uiState.recentTransactions) { transaction ->
+                    RecentTransactionItem(
+                        transaction = transaction,
+                        onClick = { onNavigateToTransactionDetail(transaction.id) },
+                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    )
+                }
             }
 
             item {
@@ -473,3 +575,278 @@ data class CategoryRankingUiModel(
     val amount: Double,
     val percent: Float
 )
+
+/**
+ * 增强版汇总卡片（带环比变化）
+ */
+@Composable
+private fun EnhancedSummaryCards(
+    income: Double,
+    expense: Double,
+    balance: Double,
+    incomeChange: Float,
+    expenseChange: Float,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+    ) {
+        EnhancedSummaryCard(
+            label = "收入",
+            amount = income,
+            change = incomeChange,
+            color = AppColors.Success,
+            modifier = Modifier.weight(1f)
+        )
+        EnhancedSummaryCard(
+            label = "支出",
+            amount = expense,
+            change = expenseChange,
+            color = AppColors.Accent,
+            positiveIsBad = true,
+            modifier = Modifier.weight(1f)
+        )
+        SummaryCard(
+            label = "结余",
+            amount = balance,
+            color = if (balance >= 0) AppColors.Info else AppColors.Accent,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+/**
+ * 增强版汇总卡片项（带环比变化）
+ */
+@Composable
+private fun EnhancedSummaryCard(
+    label: String,
+    amount: Double,
+    change: Float,
+    color: Color,
+    positiveIsBad: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    AppCard(modifier = modifier) {
+        Text(
+            text = label,
+            style = AppTypography.Caption,
+            color = AppColors.TextMuted
+        )
+        Spacer(modifier = Modifier.height(AppDimens.SpacingXS))
+        Text(
+            text = "¥${String.format("%.2f", amount)}",
+            style = AppTypography.NumberSmall,
+            color = color
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val isPositive = change >= 0
+            val changeColor = when {
+                positiveIsBad && isPositive -> AppColors.Accent
+                positiveIsBad && !isPositive -> AppColors.Success
+                isPositive -> AppColors.Success
+                else -> AppColors.Accent
+            }
+            Icon(
+                imageVector = if (isPositive) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
+                contentDescription = null,
+                modifier = Modifier.size(12.dp),
+                tint = changeColor
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(
+                text = "${if (isPositive) "+" else ""}${String.format("%.1f", change)}%",
+                style = AppTypography.Caption,
+                color = changeColor
+            )
+        }
+    }
+}
+
+/**
+ * 月度指标卡片
+ */
+@Composable
+private fun MonthlyMetricsCard(
+    transactionCount: Int,
+    avgDailyExpense: Double,
+    modifier: Modifier = Modifier
+) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            MetricItem(
+                label = "交易笔数",
+                value = "$transactionCount 笔"
+            )
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(40.dp)
+                    .background(AppColors.Border)
+            )
+            MetricItem(
+                label = "日均支出",
+                value = "¥${String.format("%.2f", avgDailyExpense)}"
+            )
+        }
+    }
+}
+
+/**
+ * 指标项
+ */
+@Composable
+private fun MetricItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            style = AppTypography.Caption,
+            color = AppColors.TextMuted
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = value,
+            style = AppTypography.BodyMedium,
+            color = AppColors.TextPrimary
+        )
+    }
+}
+
+/**
+ * 账户变动项
+ */
+@Composable
+private fun AccountChangeItem(
+    account: AccountChangeUiModel,
+    modifier: Modifier = Modifier
+) {
+    AppCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(account.color.toColor()),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = account.icon, style = AppTypography.BodyMedium)
+                }
+                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+                Column {
+                    Text(
+                        text = account.name,
+                        style = AppTypography.BodyMedium,
+                        color = AppColors.TextPrimary
+                    )
+                    Text(
+                        text = "余额: ¥${String.format("%.2f", account.currentBalance)}",
+                        style = AppTypography.Caption,
+                        color = AppColors.TextMuted
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = if (account.periodChange >= 0) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (account.periodChange >= 0) AppColors.Success else AppColors.Accent
+                )
+                Text(
+                    text = "${if (account.periodChange >= 0) "+" else ""}¥${String.format("%.2f", account.periodChange)}",
+                    style = AppTypography.NumberSmall,
+                    color = if (account.periodChange >= 0) AppColors.Success else AppColors.Accent
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 最近交易项
+ */
+@Composable
+private fun RecentTransactionItem(
+    transaction: RecentTransactionUiModel,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AppCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (transaction.type == TransactionType.EXPENSE)
+                                AppColors.Accent.copy(alpha = 0.1f)
+                            else
+                                AppColors.Success.copy(alpha = 0.1f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = transaction.categoryIcon, style = AppTypography.BodyMedium)
+                }
+                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = transaction.categoryName,
+                        style = AppTypography.BodyMedium,
+                        color = AppColors.TextPrimary
+                    )
+                    Row {
+                        Text(
+                            text = transaction.date,
+                            style = AppTypography.Caption,
+                            color = AppColors.TextMuted
+                        )
+                        if (!transaction.note.isNullOrEmpty()) {
+                            Text(
+                                text = " · ${transaction.note}",
+                                style = AppTypography.Caption,
+                                color = AppColors.TextMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
+                style = AppTypography.NumberSmall,
+                color = if (transaction.type == TransactionType.EXPENSE) AppColors.Accent else AppColors.Success
+            )
+        }
+    }
+}

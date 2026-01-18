@@ -8,6 +8,7 @@ import com.example.smartledger.domain.repository.CategorySummary
 import com.example.smartledger.domain.repository.DailyTotal
 import com.example.smartledger.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -21,8 +22,12 @@ class TransactionRepositoryImpl @Inject constructor(
     private val categoryDao: CategoryDao
 ) : TransactionRepository {
 
-    override fun getTransactionsByDateRange(startDate: Long, endDate: Long): Flow<List<TransactionEntity>> {
+    override fun getTransactionsByDateRangeFlow(startDate: Long, endDate: Long): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByDateRange(startDate, endDate)
+    }
+
+    override suspend fun getTransactionsByDateRange(startDate: Long, endDate: Long): List<TransactionEntity> {
+        return transactionDao.getTransactionsByDateRange(startDate, endDate).first()
     }
 
     override fun getTransactionsByType(
@@ -85,6 +90,19 @@ class TransactionRepositoryImpl @Inject constructor(
 
     override suspend fun getCountByDateRange(startDate: Long, endDate: Long): Int {
         return transactionDao.getCountByDateRange(startDate, endDate)
+    }
+
+    override suspend fun getTransactionCountByDateRange(startDate: Long, endDate: Long): Int {
+        return getCountByDateRange(startDate, endDate)
+    }
+
+    override suspend fun getAccountTotalByDateRange(
+        accountId: Long,
+        type: TransactionType,
+        startDate: Long,
+        endDate: Long
+    ): Double {
+        return transactionDao.getAccountTotalByDateRange(accountId, type, startDate, endDate) ?: 0.0
     }
 
     override suspend fun getDailyTotals(

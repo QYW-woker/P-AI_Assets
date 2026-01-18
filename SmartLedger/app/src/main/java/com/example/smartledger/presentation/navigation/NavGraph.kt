@@ -124,7 +124,10 @@ fun SmartLedgerNavHost(
 
             composable(Screen.Stats.route) {
                 StatsScreen(
-                    onNavigateBack = { navController.popBackStack() }
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTransactionDetail = { id ->
+                        navController.navigate(Screen.TransactionDetail.createRoute(id))
+                    }
                 )
             }
 
