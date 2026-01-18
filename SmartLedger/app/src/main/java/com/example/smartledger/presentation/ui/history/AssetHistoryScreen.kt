@@ -172,6 +172,7 @@ fun AssetHistoryScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun YearFilter(
     years: List<Int>,

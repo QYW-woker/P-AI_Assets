@@ -281,6 +281,7 @@ private fun StatPill(label: String, value: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TypeFilter(
     selectedType: HoldingType?,
