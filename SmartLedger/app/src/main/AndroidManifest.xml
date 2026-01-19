@@ -6,6 +6,25 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 语音识别功能声明 -->
+    <uses-feature
+        android:name="android.hardware.microphone"
+        android:required="false" />
+
+    <!-- Android 11+ 需要声明可查询的Intent（Package Visibility） -->
+    <queries>
+        <!-- 语音识别 -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+        <!-- Google 语音服务 -->
+        <package android:name="com.google.android.googlequicksearchbox" />
+    </queries>
 
     <application
         android:name=".SmartLedgerApplication"

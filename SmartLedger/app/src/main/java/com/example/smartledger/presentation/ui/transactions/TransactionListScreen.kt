@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.MoreVert
@@ -41,7 +42,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Divider
@@ -965,15 +968,21 @@ private fun KeywordFilterContent(
 }
 
 /**
- * 日期范围选择对话框
+ * 日期范围选择对话框 - 使用真正的日期选择器
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DateRangePickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (Long, Long) -> Unit
 ) {
-    var startDateText by remember { mutableStateOf("") }
-    var endDateText by remember { mutableStateOf("") }
+    val today = remember { java.util.Calendar.getInstance() }
+    var startDate by remember { mutableStateOf(today.timeInMillis) }
+    var endDate by remember { mutableStateOf(today.timeInMillis) }
+    var showStartPicker by remember { mutableStateOf(false) }
+    var showEndPicker by remember { mutableStateOf(false) }
+
+    val dateFormat = remember { java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -987,41 +996,79 @@ private fun DateRangePickerDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
             ) {
+                // 开始日期
                 Text(
-                    text = "请输入日期 (格式: YYYY-MM-DD)",
-                    style = AppTypography.Caption,
+                    text = "开始日期",
+                    style = AppTypography.LabelMedium,
                     color = AppColors.TextSecondary
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(AppShapes.Small)
+                        .background(AppColors.Background)
+                        .clickable { showStartPicker = true }
+                        .padding(AppDimens.PaddingL)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = dateFormat.format(java.util.Date(startDate)),
+                            style = AppTypography.BodyMedium,
+                            color = AppColors.TextPrimary
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.DateRange,
+                            contentDescription = "选择日期",
+                            tint = AppColors.Primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
 
-                OutlinedTextField(
-                    value = startDateText,
-                    onValueChange = { startDateText = it },
-                    label = { Text("开始日期") },
-                    placeholder = { Text("2024-01-01") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                // 结束日期
+                Text(
+                    text = "结束日期",
+                    style = AppTypography.LabelMedium,
+                    color = AppColors.TextSecondary
                 )
-
-                OutlinedTextField(
-                    value = endDateText,
-                    onValueChange = { endDateText = it },
-                    label = { Text("结束日期") },
-                    placeholder = { Text("2024-12-31") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(AppShapes.Small)
+                        .background(AppColors.Background)
+                        .clickable { showEndPicker = true }
+                        .padding(AppDimens.PaddingL)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = dateFormat.format(java.util.Date(endDate)),
+                            style = AppTypography.BodyMedium,
+                            color = AppColors.TextPrimary
+                        )
+                        Icon(
+                            imageVector = Icons.Filled.DateRange,
+                            contentDescription = "选择日期",
+                            tint = AppColors.Primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    try {
-                        val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
-                        val startDate = dateFormat.parse(startDateText)?.time ?: return@TextButton
-                        val endDate = dateFormat.parse(endDateText)?.time ?: return@TextButton
-                        onConfirm(startDate, endDate + 24 * 60 * 60 * 1000) // Add one day to include end date
-                    } catch (e: Exception) {
-                        // Invalid date format
+                    if (startDate <= endDate) {
+                        // 结束日期加一天，包含当天
+                        onConfirm(startDate, endDate + 24 * 60 * 60 * 1000)
                     }
                 }
             ) {
@@ -1034,6 +1081,63 @@ private fun DateRangePickerDialog(
             }
         }
     )
+
+    // 开始日期选择器
+    if (showStartPicker) {
+        DatePickerDialog(
+            initialDate = startDate,
+            onDismiss = { showStartPicker = false },
+            onDateSelected = { date ->
+                startDate = date
+                showStartPicker = false
+            }
+        )
+    }
+
+    // 结束日期选择器
+    if (showEndPicker) {
+        DatePickerDialog(
+            initialDate = endDate,
+            onDismiss = { showEndPicker = false },
+            onDateSelected = { date ->
+                endDate = date
+                showEndPicker = false
+            }
+        )
+    }
+}
+
+/**
+ * 单个日期选择器对话框
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DatePickerDialog(
+    initialDate: Long,
+    onDismiss: () -> Unit,
+    onDateSelected: (Long) -> Unit
+) {
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDate)
+
+    androidx.compose.material3.DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { onDateSelected(it) }
+                }
+            ) {
+                Text("确定")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("取消")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
+    }
 }
 
 @Composable

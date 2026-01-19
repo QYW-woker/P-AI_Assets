@@ -183,24 +183,20 @@ private fun startSpeechRecognition(
         // 优先使用中文
         putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "zh-CN")
-        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
         putExtra(RecognizerIntent.EXTRA_PROMPT, "请说出您要记录的内容...")
-        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
     }
 
-    // 检查是否有 Activity 可以处理此 Intent
-    val packageManager = context.packageManager
-    val activities = packageManager.queryIntentActivities(intent, 0)
-
-    if (activities.isNotEmpty()) {
-        try {
-            onStart()
-            launcher.launch(intent)
-        } catch (e: Exception) {
-            Toast.makeText(context, "无法启动语音识别: ${e.message}", Toast.LENGTH_SHORT).show()
-        }
-    } else {
-        Toast.makeText(context, "请安装 Google 应用以使用语音识别功能", Toast.LENGTH_LONG).show()
+    // 直接尝试启动语音识别，不检查 queryIntentActivities
+    // 因为 Android 11+ 的包可见性限制可能导致查询返回空，但实际 Intent 可以正常工作
+    try {
+        onStart()
+        launcher.launch(intent)
+    } catch (e: android.content.ActivityNotFoundException) {
+        Toast.makeText(context, "请安装 Google 应用或其他语音识别应用", Toast.LENGTH_LONG).show()
+    } catch (e: Exception) {
+        Toast.makeText(context, "语音识别启动失败: ${e.message}", Toast.LENGTH_SHORT).show()
     }
 }
 
