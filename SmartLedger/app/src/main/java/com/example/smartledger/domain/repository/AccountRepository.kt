@@ -65,9 +65,14 @@ interface AccountRepository {
     suspend fun deleteAccount(account: AccountEntity)
 
     /**
-     * 更新账户余额
+     * 更新账户余额（增量更新，在现有余额基础上增加）
      */
     suspend fun updateBalance(accountId: Long, amount: Double)
+
+    /**
+     * 设置账户余额（直接设置为新值，不累加）
+     */
+    suspend fun setBalance(accountId: Long, newBalance: Double)
 
     /**
      * 增加账户余额

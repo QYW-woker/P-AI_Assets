@@ -66,6 +66,10 @@ class AccountRepositoryImpl @Inject constructor(
         accountDao.updateBalance(accountId, amount)
     }
 
+    override suspend fun setBalance(accountId: Long, newBalance: Double) {
+        accountDao.setBalance(accountId, newBalance)
+    }
+
     override suspend fun incrementBalance(accountId: Long, delta: Double) {
         accountDao.incrementBalance(accountId, delta)
     }

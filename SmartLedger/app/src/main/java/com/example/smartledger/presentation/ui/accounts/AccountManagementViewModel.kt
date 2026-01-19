@@ -120,7 +120,8 @@ class AccountManagementViewModel @Inject constructor(
 
     fun updateBalance(accountId: Long, newBalance: Double) {
         viewModelScope.launch {
-            accountRepository.updateBalance(accountId, newBalance)
+            // 使用 setBalance 直接设置新余额，而不是累加
+            accountRepository.setBalance(accountId, newBalance)
             loadAccounts()
         }
     }
