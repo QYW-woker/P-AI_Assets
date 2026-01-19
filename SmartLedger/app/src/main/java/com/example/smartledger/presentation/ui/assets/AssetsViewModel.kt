@@ -235,7 +235,8 @@ class AssetsViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadAssetsData()
+        // 由于使用了 Flow 持续观察，数据会自动更新
+        // 此方法保留用于兼容性，但实际上不需要手动刷新
     }
 }
 
