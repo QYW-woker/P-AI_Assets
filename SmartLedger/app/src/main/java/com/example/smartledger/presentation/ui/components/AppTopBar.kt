@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -89,7 +88,7 @@ fun AppTopBarWithBack(
     AppTopBar(
         title = title,
         modifier = modifier,
-        navigationIcon = Icons.AutoMirrored.Filled.ArrowBack,
+        navigationIcon = Icons.Filled.ArrowBack,
         onNavigationClick = onBackClick,
         actions = actions,
         scrollBehavior = scrollBehavior,
@@ -227,7 +226,7 @@ fun LargeAppTopBar(
 @Composable
 fun TransparentTopBar(
     modifier: Modifier = Modifier,
-    navigationIcon: ImageVector? = Icons.AutoMirrored.Filled.ArrowBack,
+    navigationIcon: ImageVector? = Icons.Filled.ArrowBack,
     onNavigationClick: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     contentColor: Color = Color.White

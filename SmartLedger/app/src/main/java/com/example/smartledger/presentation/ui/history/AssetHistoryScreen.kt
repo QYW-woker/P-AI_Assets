@@ -18,9 +18,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.TrendingFlat
@@ -69,7 +66,7 @@ fun AssetHistoryScreen(
                 title = { Text("历史资产记录") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -490,8 +487,8 @@ private fun ChangeIndicator(
     modifier: Modifier = Modifier
 ) {
     val (icon, color) = when {
-        change > 0 -> Icons.AutoMirrored.Filled.TrendingUp to AppColors.Income
-        change < 0 -> Icons.AutoMirrored.Filled.TrendingDown to AppColors.Expense
+        change > 0 -> Icons.Filled.TrendingUp to AppColors.Income
+        change < 0 -> Icons.Filled.TrendingDown to AppColors.Expense
         else -> Icons.Default.TrendingFlat to AppColors.TextMuted
     }
 

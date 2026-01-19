@@ -23,8 +23,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
@@ -80,6 +78,7 @@ import com.example.smartledger.presentation.ui.components.AppCard
 import com.example.smartledger.presentation.ui.components.AppTopBarWithBack
 import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
+import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
 import com.example.smartledger.utils.toColor
 
@@ -1060,7 +1059,7 @@ private fun MonthSummaryHeader(
                 if (showNavigation) {
                     IconButton(onClick = onPreviousMonth) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            imageVector = Icons.Filled.KeyboardArrowLeft,
                             contentDescription = "上个月",
                             tint = AppColors.TextSecondary
                         )
@@ -1078,7 +1077,7 @@ private fun MonthSummaryHeader(
                 if (showNavigation) {
                     IconButton(onClick = onNextMonth) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            imageVector = Icons.Filled.KeyboardArrowRight,
                             contentDescription = "下个月",
                             tint = AppColors.TextSecondary
                         )
@@ -1247,7 +1246,7 @@ private fun TransactionItemCard(
                 .then(
                     if (isSelected) Modifier.background(
                         AppColors.Primary.copy(alpha = 0.1f),
-                        RoundedCornerShape(AppDimens.RadiusM)
+                        RoundedCornerShape(AppShapes.RadiusMedium)
                     ) else Modifier
                 )
         ) {

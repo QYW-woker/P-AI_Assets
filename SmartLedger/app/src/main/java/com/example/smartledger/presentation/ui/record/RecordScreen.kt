@@ -24,7 +24,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -479,7 +478,7 @@ private fun KeypadButton(
     ) {
         if (key == "backspace") {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.Backspace,
+                imageVector = Icons.Filled.Backspace,
                 contentDescription = "退格",
                 tint = AppColors.TextPrimary,
                 modifier = Modifier.size(20.dp)

@@ -298,7 +298,7 @@ class AiChatViewModel @Inject constructor(
 
                         // 更新账户余额
                         val balanceChange = if (pending.type == TransactionType.EXPENSE) -pending.amount else pending.amount
-                        accountRepository.updateAccountBalance(account.id, account.balance + balanceChange)
+                        accountRepository.updateBalance(account.id, account.balance + balanceChange)
 
                         successCount++
                     } catch (e: Exception) {

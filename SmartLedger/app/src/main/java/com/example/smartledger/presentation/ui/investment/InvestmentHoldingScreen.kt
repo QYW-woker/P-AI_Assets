@@ -19,9 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -95,7 +92,7 @@ fun InvestmentHoldingScreen(
                 title = { Text("投资明细") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = "返回")
                     }
                 }
             )
@@ -223,9 +220,9 @@ private fun SummaryCard(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = if (summary.totalProfitLoss >= 0)
-                                Icons.AutoMirrored.Filled.TrendingUp
+                                Icons.Filled.TrendingUp
                             else
-                                Icons.AutoMirrored.Filled.TrendingDown,
+                                Icons.Filled.TrendingDown,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
