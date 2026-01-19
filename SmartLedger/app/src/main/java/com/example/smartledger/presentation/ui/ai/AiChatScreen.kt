@@ -3,7 +3,6 @@ package com.example.smartledger.presentation.ui.ai
 import android.Manifest
 import android.content.Intent
 import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -157,11 +156,9 @@ fun AiChatScreen(
                     }
                 },
                 onVoiceClick = {
-                    if (SpeechRecognizer.isRecognitionAvailable(context)) {
-                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                    } else {
-                        Toast.makeText(context, "设备不支持语音识别", Toast.LENGTH_SHORT).show()
-                    }
+                    // 直接请求权限，不检查 isRecognitionAvailable
+                    // 因为 Intent 方式的语音识别可能在 isRecognitionAvailable 返回 false 时仍然可用
+                    permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 },
                 isListening = isListening,
                 modifier = Modifier
@@ -183,14 +180,27 @@ private fun startSpeechRecognition(
 ) {
     val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        // 优先使用中文
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "zh-CN")
+        putExtra(RecognizerIntent.EXTRA_ONLY_RETURN_LANGUAGE_PREFERENCE, true)
         putExtra(RecognizerIntent.EXTRA_PROMPT, "请说出您要记录的内容...")
+        putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
     }
-    try {
-        onStart()
-        launcher.launch(intent)
-    } catch (e: Exception) {
-        Toast.makeText(context, "无法启动语音识别", Toast.LENGTH_SHORT).show()
+
+    // 检查是否有 Activity 可以处理此 Intent
+    val packageManager = context.packageManager
+    val activities = packageManager.queryIntentActivities(intent, 0)
+
+    if (activities.isNotEmpty()) {
+        try {
+            onStart()
+            launcher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(context, "无法启动语音识别: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
+    } else {
+        Toast.makeText(context, "请安装 Google 应用以使用语音识别功能", Toast.LENGTH_LONG).show()
     }
 }
 

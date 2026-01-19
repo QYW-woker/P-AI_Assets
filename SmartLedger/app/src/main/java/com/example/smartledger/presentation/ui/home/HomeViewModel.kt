@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -35,87 +36,94 @@ class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
     init {
-        loadHomeData()
+        observeHomeData()
     }
 
-    private fun loadHomeData() {
+    /**
+     * 持续监听数据变化，实现实时更新
+     */
+    private fun observeHomeData() {
         viewModelScope.launch {
             try {
                 _uiState.value = _uiState.value.copy(isLoading = true)
 
-                val currentMonth = SimpleDateFormat("yyyy年M月", Locale.CHINA).format(Date())
+                // 组合多个 Flow，任一变化都会触发更新
+                combine(
+                    accountRepository.getTotalBalance(),
+                    budgetRepository.getTotalBudget(),
+                    transactionRepository.getRecentTransactions(10)
+                ) { totalAssets, totalBudget, recentTransactions ->
+                    Triple(totalAssets, totalBudget, recentTransactions)
+                }.collectLatest { (totalAssets, totalBudget, recentTransactions) ->
 
-                // 获取本月时间范围
-                val calendar = Calendar.getInstance()
-                calendar.set(Calendar.DAY_OF_MONTH, 1)
-                calendar.set(Calendar.HOUR_OF_DAY, 0)
-                calendar.set(Calendar.MINUTE, 0)
-                calendar.set(Calendar.SECOND, 0)
-                calendar.set(Calendar.MILLISECOND, 0)
-                val monthStart = calendar.timeInMillis
+                    val currentMonth = SimpleDateFormat("yyyy年M月", Locale.CHINA).format(Date())
 
-                calendar.add(Calendar.MONTH, 1)
-                val monthEnd = calendar.timeInMillis
+                    // 获取本月时间范围
+                    val calendar = Calendar.getInstance()
+                    calendar.set(Calendar.DAY_OF_MONTH, 1)
+                    calendar.set(Calendar.HOUR_OF_DAY, 0)
+                    calendar.set(Calendar.MINUTE, 0)
+                    calendar.set(Calendar.SECOND, 0)
+                    calendar.set(Calendar.MILLISECOND, 0)
+                    val monthStart = calendar.timeInMillis
 
-                // 计算剩余天数（修复：使用当月最后一天减去今天）
-                val today = Calendar.getInstance()
-                val lastDayOfMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
-                val currentDay = today.get(Calendar.DAY_OF_MONTH)
-                val daysRemaining = lastDayOfMonth - currentDay + 1 // +1 包含今天
+                    calendar.add(Calendar.MONTH, 1)
+                    val monthEnd = calendar.timeInMillis
 
-                // 获取总资产
-                val totalAssets = accountRepository.getTotalBalance().first()
+                    // 计算剩余天数
+                    val today = Calendar.getInstance()
+                    val lastDayOfMonth = today.getActualMaximum(Calendar.DAY_OF_MONTH)
+                    val currentDay = today.get(Calendar.DAY_OF_MONTH)
+                    val daysRemaining = lastDayOfMonth - currentDay + 1
 
-                // 获取本月收支
-                val monthlyIncome = transactionRepository.getTotalByDateRange(
-                    TransactionType.INCOME, monthStart, monthEnd
-                )
-                val monthlyExpense = transactionRepository.getTotalByDateRange(
-                    TransactionType.EXPENSE, monthStart, monthEnd
-                )
+                    // 获取本月收支（实时计算）
+                    val monthlyIncome = transactionRepository.getTotalByDateRange(
+                        TransactionType.INCOME, monthStart, monthEnd
+                    )
+                    val monthlyExpense = transactionRepository.getTotalByDateRange(
+                        TransactionType.EXPENSE, monthStart, monthEnd
+                    )
 
-                // 获取预算
-                val totalBudget = budgetRepository.getTotalBudget().first()
-                val budgetAmount = totalBudget?.amount ?: 0.0
-                val budgetUsed = monthlyExpense
+                    val budgetAmount = totalBudget?.amount ?: 0.0
+                    val budgetUsed = monthlyExpense
 
-                // 计算日均可用
-                val dailyAvailable = if (daysRemaining > 0 && budgetAmount > budgetUsed) {
-                    (budgetAmount - budgetUsed) / daysRemaining
-                } else {
-                    0.0
-                }
+                    // 计算日均可用
+                    val dailyAvailable = if (daysRemaining > 0 && budgetAmount > budgetUsed) {
+                        (budgetAmount - budgetUsed) / daysRemaining
+                    } else {
+                        0.0
+                    }
 
-                // 获取最近交易并转换为UI模型
-                val recentTransactions = transactionRepository.getRecentTransactions(10).first()
-                val transactionUiModels = recentTransactions.map { transaction ->
-                    val category = categoryRepository.getCategoryById(transaction.categoryId)
-                    TransactionUiModel(
-                        id = transaction.id,
-                        categoryName = category?.name ?: "未分类",
-                        categoryIcon = category?.icon ?: "📦",
-                        categoryColor = category?.color ?: "#CCCCCC",
-                        amount = transaction.amount,
-                        note = transaction.note,
-                        isExpense = transaction.type == TransactionType.EXPENSE,
-                        date = transaction.date
+                    // 转换交易为UI模型
+                    val transactionUiModels = recentTransactions.map { transaction ->
+                        val category = categoryRepository.getCategoryById(transaction.categoryId)
+                        TransactionUiModel(
+                            id = transaction.id,
+                            categoryName = category?.name ?: "未分类",
+                            categoryIcon = category?.icon ?: "📦",
+                            categoryColor = category?.color ?: "#CCCCCC",
+                            amount = transaction.amount,
+                            note = transaction.note,
+                            isExpense = transaction.type == TransactionType.EXPENSE,
+                            date = transaction.date
+                        )
+                    }
+
+                    _uiState.value = HomeUiState(
+                        currentMonth = currentMonth,
+                        totalAssets = totalAssets,
+                        assetsChange = 0.0,
+                        assetsChangePercent = 0f,
+                        budgetTotal = budgetAmount,
+                        budgetUsed = budgetUsed,
+                        dailyAvailable = dailyAvailable,
+                        monthlyIncome = monthlyIncome,
+                        monthlyExpense = monthlyExpense,
+                        monthlyInvestmentReturn = 0.0,
+                        recentTransactions = transactionUiModels,
+                        isLoading = false
                     )
                 }
-
-                _uiState.value = HomeUiState(
-                    currentMonth = currentMonth,
-                    totalAssets = totalAssets,
-                    assetsChange = 0.0, // TODO: 计算资产变化
-                    assetsChangePercent = 0f,
-                    budgetTotal = budgetAmount,
-                    budgetUsed = budgetUsed,
-                    dailyAvailable = dailyAvailable,
-                    monthlyIncome = monthlyIncome,
-                    monthlyExpense = monthlyExpense,
-                    monthlyInvestmentReturn = 0.0, // TODO: 投资收益
-                    recentTransactions = transactionUiModels,
-                    isLoading = false
-                )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
@@ -126,7 +134,7 @@ class HomeViewModel @Inject constructor(
     }
 
     fun refresh() {
-        loadHomeData()
+        observeHomeData()
     }
 }
 
