@@ -401,6 +401,7 @@ private fun ChatInputBar(
 /**
  * 语音记账确认对话框
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun VoiceConfirmDialog(
     transaction: VoiceParsedTransaction,
