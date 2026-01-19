@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Notifications
@@ -236,7 +237,7 @@ private fun SettingsItem(
         }
 
         Icon(
-            imageVector = Icons.Filled.ArrowForwardIos,
+            imageVector = Icons.Filled.KeyboardArrowRight,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = AppColors.TextMuted

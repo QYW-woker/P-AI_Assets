@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Assessment
@@ -392,7 +393,7 @@ private fun ProfileMenuItem(
         }
 
         Icon(
-            imageVector = Icons.Filled.ArrowForwardIos,
+            imageVector = Icons.Filled.KeyboardArrowRight,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
             tint = AppColors.TextMuted
