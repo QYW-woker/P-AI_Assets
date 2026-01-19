@@ -98,19 +98,19 @@ class AiChatViewModel @Inject constructor(
                         type = pending.type,
                         categoryId = pending.categoryId ?: 0L,
                         accountId = account.id,
-                        date = System.currentTimeMillis(),
+                        date = pending.timestamp,
                         note = pending.note,
                         tags = ""
                     )
                     transactionRepository.insertTransaction(transaction)
 
-                    // 更新账户余额
+                    // 使用 incrementBalance 更新账户余额，避免使用可能已过期的 account.balance
                     val balanceChange = if (pending.type == TransactionType.EXPENSE) {
                         -pending.amount
                     } else {
                         pending.amount
                     }
-                    accountRepository.updateBalance(account.id, account.balance + balanceChange)
+                    accountRepository.incrementBalance(account.id, balanceChange)
 
                     addMessage(
                         content = "✅ 记录成功！\n\n" +
@@ -135,6 +135,104 @@ class AiChatViewModel @Inject constructor(
             isFromUser = false
         )
     }
+
+    /**
+     * 处理语音识别结果 - 直接解析并显示确认对话框
+     */
+    fun handleVoiceInput(voiceText: String) {
+        val result = transactionParser.parse(voiceText, categories)
+        when (result) {
+            is ParseResult.Success -> {
+                val data = result.data
+                _uiState.update {
+                    it.copy(
+                        showVoiceConfirmDialog = true,
+                        voiceParsedTransaction = VoiceParsedTransaction(
+                            amount = data.amount,
+                            type = data.type,
+                            categoryId = data.categoryId,
+                            categoryName = data.categoryName,
+                            note = data.note,
+                            timestamp = data.timestamp
+                        )
+                    )
+                }
+            }
+            is ParseResult.Failure -> {
+                // 解析失败，回退到聊天模式
+                sendMessage(voiceText)
+            }
+        }
+    }
+
+    /**
+     * 更新语音解析的交易信息
+     */
+    fun updateVoiceParsedTransaction(transaction: VoiceParsedTransaction) {
+        _uiState.update { it.copy(voiceParsedTransaction = transaction) }
+    }
+
+    /**
+     * 确认语音识别的交易
+     */
+    fun confirmVoiceTransaction() {
+        val parsed = _uiState.value.voiceParsedTransaction ?: return
+        viewModelScope.launch {
+            val account = accounts.firstOrNull()
+            if (account != null) {
+                val transaction = TransactionEntity(
+                    amount = parsed.amount,
+                    type = parsed.type,
+                    categoryId = parsed.categoryId ?: 0L,
+                    accountId = account.id,
+                    date = parsed.timestamp,
+                    note = parsed.note,
+                    tags = ""
+                )
+                transactionRepository.insertTransaction(transaction)
+
+                // 使用 incrementBalance 更新账户余额
+                val balanceChange = if (parsed.type == TransactionType.EXPENSE) {
+                    -parsed.amount
+                } else {
+                    parsed.amount
+                }
+                accountRepository.incrementBalance(account.id, balanceChange)
+
+                _uiState.update {
+                    it.copy(
+                        showVoiceConfirmDialog = false,
+                        voiceParsedTransaction = null
+                    )
+                }
+
+                addMessage(
+                    content = "✅ 语音记账成功！\n\n" +
+                            "金额：¥${String.format("%.2f", parsed.amount)}\n" +
+                            "分类：${parsed.categoryName}\n" +
+                            "备注：${parsed.note}",
+                    isFromUser = false
+                )
+            }
+        }
+    }
+
+    /**
+     * 取消语音识别的交易
+     */
+    fun cancelVoiceTransaction() {
+        _uiState.update {
+            it.copy(
+                showVoiceConfirmDialog = false,
+                voiceParsedTransaction = null
+            )
+        }
+    }
+
+    /**
+     * 获取所有分类
+     */
+    fun getCategories(): List<CategoryEntity> = categories
 
     private fun addMessage(content: String, isFromUser: Boolean) {
         val message = ChatMessage(
@@ -234,7 +332,8 @@ class AiChatViewModel @Inject constructor(
                         type = data.type,
                         categoryId = data.categoryId,
                         categoryName = data.categoryName,
-                        note = data.note
+                        note = data.note,
+                        timestamp = data.timestamp
                     ))
                 }
                 is ParseResult.Failure -> {
@@ -291,14 +390,14 @@ class AiChatViewModel @Inject constructor(
                             type = pending.type,
                             categoryId = pending.categoryId ?: 0L,
                             accountId = account.id,
-                            date = System.currentTimeMillis(),
+                            date = pending.timestamp,
                             note = pending.note
                         )
                         transactionRepository.insertTransaction(transaction)
 
-                        // 更新账户余额
+                        // 使用 incrementBalance 更新账户余额
                         val balanceChange = if (pending.type == TransactionType.EXPENSE) -pending.amount else pending.amount
-                        accountRepository.updateBalance(account.id, account.balance + balanceChange)
+                        accountRepository.incrementBalance(account.id, balanceChange)
 
                         successCount++
                     } catch (e: Exception) {
@@ -540,7 +639,8 @@ class AiChatViewModel @Inject constructor(
                     type = data.type,
                     categoryId = data.categoryId,
                     categoryName = data.categoryName,
-                    note = data.note
+                    note = data.note,
+                    timestamp = data.timestamp
                 )
 
                 val typeText = if (data.type == TransactionType.EXPENSE) "支出" else "收入"
@@ -577,7 +677,21 @@ data class AiChatUiState(
     val messages: List<ChatMessage> = emptyList(),
     val isLoading: Boolean = false,
     val showConfirmation: Boolean = false,
-    val showBatchConfirmation: Boolean = false
+    val showBatchConfirmation: Boolean = false,
+    val showVoiceConfirmDialog: Boolean = false,
+    val voiceParsedTransaction: VoiceParsedTransaction? = null
+)
+
+/**
+ * 语音识别解析出的交易（可编辑）
+ */
+data class VoiceParsedTransaction(
+    var amount: Double,
+    var type: TransactionType,
+    var categoryId: Long?,
+    var categoryName: String,
+    var note: String,
+    var timestamp: Long
 )
 
 /**
@@ -598,5 +712,6 @@ data class PendingTransaction(
     val type: TransactionType,
     val categoryId: Long?,
     val categoryName: String,
-    val note: String
+    val note: String,
+    val timestamp: Long = System.currentTimeMillis()
 )

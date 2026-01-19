@@ -2,6 +2,7 @@ package com.example.smartledger.domain.ai
 
 import com.example.smartledger.data.local.entity.CategoryEntity
 import com.example.smartledger.data.local.entity.TransactionType
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -29,8 +30,11 @@ class SmartTransactionParser @Inject constructor() {
         // 3. 匹配分类
         val matchedCategory = matchCategory(cleanInput, categories, transactionType)
 
-        // 4. 提取备注
-        val note = extractNote(cleanInput)
+        // 4. 提取时间
+        val parsedTime = parseTime(cleanInput)
+
+        // 5. 提取备注（排除时间词）
+        val note = extractNote(cleanInput, matchedCategory?.name)
 
         return ParseResult.Success(
             ParsedTransactionData(
@@ -39,9 +43,59 @@ class SmartTransactionParser @Inject constructor() {
                 categoryId = matchedCategory?.id,
                 categoryName = matchedCategory?.name ?: getDefaultCategoryName(transactionType),
                 note = note,
+                timestamp = parsedTime,
                 confidence = calculateConfidence(amount, matchedCategory)
             )
         )
+    }
+
+    /**
+     * 解析时间信息
+     */
+    private fun parseTime(input: String): Long {
+        val calendar = Calendar.getInstance()
+
+        // 解析日期偏移
+        when {
+            input.contains("昨天") || input.contains("昨日") -> {
+                calendar.add(Calendar.DAY_OF_MONTH, -1)
+            }
+            input.contains("前天") -> {
+                calendar.add(Calendar.DAY_OF_MONTH, -2)
+            }
+            input.contains("大前天") -> {
+                calendar.add(Calendar.DAY_OF_MONTH, -3)
+            }
+        }
+
+        // 解析时段
+        when {
+            input.contains("早上") || input.contains("早餐") || input.contains("上午") -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 8)
+                calendar.set(Calendar.MINUTE, 0)
+            }
+            input.contains("中午") || input.contains("午餐") -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 12)
+                calendar.set(Calendar.MINUTE, 0)
+            }
+            input.contains("下午") -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 15)
+                calendar.set(Calendar.MINUTE, 0)
+            }
+            input.contains("晚上") || input.contains("晚餐") || input.contains("晚饭") -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 19)
+                calendar.set(Calendar.MINUTE, 0)
+            }
+            input.contains("夜宵") || input.contains("宵夜") -> {
+                calendar.set(Calendar.HOUR_OF_DAY, 22)
+                calendar.set(Calendar.MINUTE, 0)
+            }
+        }
+
+        calendar.set(Calendar.SECOND, 0)
+        calendar.set(Calendar.MILLISECOND, 0)
+
+        return calendar.timeInMillis
     }
 
     private fun parseAmount(input: String): Double? {
@@ -138,19 +192,22 @@ class SmartTransactionParser @Inject constructor() {
             ?: filteredCategories.firstOrNull()
     }
 
-    private fun extractNote(input: String): String {
-        // 移除金额相关的文字，保留主要内容
+    private fun extractNote(input: String, categoryName: String? = null): String {
+        // 移除金额、时间相关的文字，保留主要内容作为备注
         var note = input
             .replace(Regex("\\d+\\.?\\d*\\s*[元块]"), "")
             .replace(Regex("[¥￥]\\d+\\.?\\d*"), "")
             .replace(Regex("花了\\s*\\d+\\.?\\d*"), "")
             .replace(Regex("\\d+\\.?\\d*\\s*rmb", RegexOption.IGNORE_CASE), "")
             .replace(Regex("收入|入账|到账|支出|花费|消费"), "")
+            // 移除时间词
+            .replace(Regex("昨天|昨日|前天|大前天|今天|今日"), "")
+            .replace(Regex("早上|上午|中午|下午|晚上|晚餐|晚饭|夜宵|宵夜|早餐|午餐"), "")
             .trim()
 
-        // 如果备注为空或太短，使用原始输入
+        // 如果备注基本为空，使用分类名作为备注
         if (note.length < 2) {
-            note = input.take(50)
+            note = categoryName ?: input.take(20)
         }
 
         return note.take(100)
@@ -185,5 +242,6 @@ data class ParsedTransactionData(
     val categoryId: Long?,
     val categoryName: String,
     val note: String,
+    val timestamp: Long = System.currentTimeMillis(),
     val confidence: Float
 )
