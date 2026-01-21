@@ -731,7 +731,7 @@ private fun CategoryRankingItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = { progress },
+                        progress = progress,
                         modifier = Modifier
                             .weight(1f)
                             .height(8.dp)
@@ -904,38 +904,4 @@ data class CategoryRankingUiModel(
     val color: String,
     val amount: Double,
     val percent: Float
-)
-
-/**
- * 每日趋势UI模型
- */
-data class DailyTrendUiModel(
-    val date: Long,
-    val amount: Float,
-    val label: String
-)
-
-/**
- * 账户变动UI模型
- */
-data class AccountChangeUiModel(
-    val id: Long,
-    val name: String,
-    val icon: String,
-    val color: String,
-    val currentBalance: Double,
-    val periodChange: Double
-)
-
-/**
- * 最近交易UI模型
- */
-data class RecentTransactionUiModel(
-    val id: Long,
-    val categoryName: String,
-    val categoryIcon: String,
-    val amount: Double,
-    val type: TransactionType,
-    val date: String,
-    val note: String?
 )

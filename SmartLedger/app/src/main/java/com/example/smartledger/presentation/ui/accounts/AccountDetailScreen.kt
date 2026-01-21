@@ -1100,8 +1100,8 @@ class AccountDetailViewModel @Inject constructor(
                 // 生成余额历史（模拟过去7天）
                 val balanceHistory = generateBalanceHistory(account.balance, monthlyExpense)
 
-                // 计算使用天数
-                val createdDays = ((System.currentTimeMillis() - account.createdAt) / (1000 * 60 * 60 * 24)).toInt().coerceAtLeast(1)
+                // 计算使用天数（默认30天，因为没有创建时间字段）
+                val createdDays = 30
 
                 val typeName = when (account.type.name) {
                     "CASH" -> "现金"

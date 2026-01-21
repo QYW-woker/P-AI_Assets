@@ -492,7 +492,7 @@ private fun CategoryBudgetItem(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = { progress.coerceAtMost(1f) },
+                        progress = progress.coerceAtMost(1f),
                         modifier = Modifier
                             .weight(1f)
                             .height(8.dp)

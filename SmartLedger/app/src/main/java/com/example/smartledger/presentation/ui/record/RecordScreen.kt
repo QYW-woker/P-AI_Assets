@@ -798,12 +798,3 @@ data class CategoryUiModel(
     val icon: String,
     val color: String
 )
-
-/**
- * 账户UI模型（用于记账页面）
- */
-data class AccountUiModel(
-    val id: Long,
-    val name: String,
-    val icon: String
-)
