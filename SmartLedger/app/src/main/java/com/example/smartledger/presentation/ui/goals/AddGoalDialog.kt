@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -18,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,15 +31,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppTypography
-import java.text.SimpleDateFormat
+import androidx.compose.ui.unit.sp
 import java.util.Calendar
-import java.util.Date
-import java.util.Locale
+
+// iOS风格颜色
+private val iOSCardBackground = Color.White
+private val iOSAccent = Color(0xFF007AFF)
+private val iOSGreen = Color(0xFF34C759)
+private val iOSOrange = Color(0xFFFF9500)
 
 /**
  * 目标图标选项
@@ -55,7 +59,7 @@ private val goalIcons = listOf(
 )
 
 /**
- * 添加目标对话框
+ * 添加目标对话框 - iOS卡通风格
  */
 @Composable
 fun AddGoalDialog(
@@ -79,47 +83,66 @@ fun AddGoalDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(24.dp),
         title = {
-            Text(
-                text = "添加储蓄目标",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "🎯",
+                    fontSize = 24.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "创建储蓄目标",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
         },
         text = {
             Column {
                 // 目标名称
                 Text(
-                    text = "目标名称",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.TextSecondary
+                    text = "📝 目标名称",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("例如：买房首付", color = AppColors.TextMuted)
+                        Text("例如：买房首付", color = Color(0xFFC7C7CC))
                     },
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSAccent,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // 目标图标选择
                 Text(
-                    text = "选择图标",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.TextSecondary
+                    text = "🎨 选择图标",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(goalIcons) { (icon, label) ->
                         GoalIconChip(
@@ -131,16 +154,17 @@ fun AddGoalDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // 目标金额
                 Text(
-                    text = "目标金额",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.TextSecondary
+                    text = "💵 目标金额",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = amountText,
@@ -151,28 +175,39 @@ fun AddGoalDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("输入目标金额", color = AppColors.TextMuted)
+                        Text("输入目标金额", color = Color(0xFFC7C7CC))
                     },
                     prefix = {
-                        Text("¥", color = AppColors.TextSecondary)
+                        Text(
+                            "¥",
+                            color = iOSAccent,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSAccent,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // 目标期限
                 Text(
-                    text = "计划完成时间",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.TextSecondary
+                    text = "⏰ 计划完成时间",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(deadlineOptions) { (months, label) ->
                         DeadlineChip(
@@ -185,25 +220,31 @@ fun AddGoalDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // 备注
                 Text(
-                    text = "备注（可选）",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.TextSecondary
+                    text = "💬 备注（可选）",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = note,
                     onValueChange = { note = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("添加备注", color = AppColors.TextMuted)
+                        Text("添加备注", color = Color(0xFFC7C7CC))
                     },
-                    maxLines = 2
+                    maxLines = 2,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSAccent,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
                 )
             }
         },
@@ -222,12 +263,22 @@ fun AddGoalDialog(
                 },
                 enabled = name.isNotBlank() && amountText.toDoubleOrNull()?.let { it > 0 } == true
             ) {
-                Text("确定", color = AppColors.Accent)
+                Text(
+                    text = "✓ 创建",
+                    color = if (name.isNotBlank() && amountText.toDoubleOrNull()?.let { it > 0 } == true)
+                        iOSAccent else Color(0xFFC7C7CC),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextMuted)
+                Text(
+                    "取消",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 16.sp
+                )
             }
         }
     )
@@ -243,19 +294,22 @@ private fun GoalIconChip(
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(AppDimens.SpacingXS),
+            .padding(4.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(52.dp)
                 .clip(CircleShape)
-                .background(if (selected) AppColors.AccentLight else AppColors.Card),
+                .background(
+                    if (selected) iOSAccent.copy(alpha = 0.15f)
+                    else Color(0xFFF2F2F7)
+                ),
             contentAlignment = Alignment.Center
         ) {
             Text(
                 text = icon,
-                style = AppTypography.TitleSmall
+                fontSize = 24.sp
             )
         }
 
@@ -263,8 +317,9 @@ private fun GoalIconChip(
 
         Text(
             text = label,
-            style = AppTypography.Caption,
-            color = if (selected) AppColors.Accent else AppColors.TextMuted
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
+            color = if (selected) iOSAccent else Color(0xFF8E8E93)
         )
     }
 }
@@ -278,20 +333,21 @@ private fun DeadlineChip(
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .background(if (selected) AppColors.Accent else AppColors.Card)
+            .background(if (selected) iOSAccent else Color(0xFFF2F2F7))
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Text(
             text = label,
-            style = AppTypography.LabelMedium,
-            color = if (selected) Color.White else AppColors.TextSecondary
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = if (selected) Color.White else Color(0xFF8E8E93)
         )
     }
 }
 
 /**
- * 存入金额对话框
+ * 存入金额对话框 - iOS卡通风格
  */
 @Composable
 fun DepositToGoalDialog(
@@ -303,34 +359,66 @@ fun DepositToGoalDialog(
 ) {
     var amountText by remember { mutableStateOf("") }
     val remaining = targetAmount - currentAmount
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(24.dp),
         title = {
-            Text(
-                text = "存入金额",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💰",
+                    fontSize = 24.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "存入金额",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
         },
         text = {
             Column {
+                // 目标信息
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(iOSGreen.copy(alpha = 0.1f))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = goalName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "💡 还需存入 ¥${String.format("%.2f", remaining)}",
+                            fontSize = 13.sp,
+                            color = iOSGreen,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 输入金额
                 Text(
-                    text = goalName,
-                    style = AppTypography.TitleSmall,
-                    color = AppColors.TextPrimary
+                    text = "💵 存入金额",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
-
-                Text(
-                    text = "还需存入 ¥${String.format("%.2f", remaining)}",
-                    style = AppTypography.Caption,
-                    color = AppColors.TextMuted
-                )
-
-                Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = amountText,
@@ -341,20 +429,39 @@ fun DepositToGoalDialog(
                     },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("输入存入金额", color = AppColors.TextMuted)
+                        Text("输入存入金额", color = Color(0xFFC7C7CC))
                     },
                     prefix = {
-                        Text("¥", color = AppColors.TextSecondary)
+                        Text(
+                            "¥",
+                            color = iOSGreen,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSGreen,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
                 )
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // 快捷金额选择
+                Text(
+                    text = "⚡ 快捷选择",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     QuickAmountChip("100", amountText) { amountText = "100" }
                     QuickAmountChip("500", amountText) { amountText = "500" }
@@ -377,12 +484,22 @@ fun DepositToGoalDialog(
                 },
                 enabled = amountText.toDoubleOrNull()?.let { it > 0 } == true
             ) {
-                Text("确定存入", color = AppColors.Accent)
+                Text(
+                    text = "✓ 存入",
+                    color = if (amountText.toDoubleOrNull()?.let { it > 0 } == true)
+                        iOSGreen else Color(0xFFC7C7CC),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextMuted)
+                Text(
+                    "取消",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 16.sp
+                )
             }
         }
     )
@@ -395,17 +512,174 @@ private fun QuickAmountChip(
     onClick: () -> Unit
 ) {
     val isSelected = currentValue == label || (label != "全部" && currentValue == "$label.00")
+
     Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(16.dp))
-            .background(if (isSelected) AppColors.AccentLight else AppColors.Card)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) iOSGreen.copy(alpha = 0.15f)
+                else Color(0xFFF2F2F7)
+            )
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
-            text = if (label == "全部") label else "¥$label",
-            style = AppTypography.Caption,
-            color = if (isSelected) AppColors.Accent else AppColors.TextSecondary
+            text = if (label == "全部") "🎯 $label" else "¥$label",
+            fontSize = 13.sp,
+            fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+            color = if (isSelected) iOSGreen else Color(0xFF8E8E93)
         )
     }
+}
+
+/**
+ * 取出金额对话框 - iOS卡通风格
+ */
+@Composable
+fun WithdrawFromGoalDialog(
+    goalName: String,
+    currentAmount: Double,
+    onDismiss: () -> Unit,
+    onConfirm: (amount: Double) -> Unit
+) {
+    var amountText by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💸",
+                    fontSize = 24.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "取出金额",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
+        },
+        text = {
+            Column {
+                // 目标信息
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(iOSOrange.copy(alpha = 0.1f))
+                        .padding(12.dp)
+                ) {
+                    Column {
+                        Text(
+                            text = goalName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "💰 当前已存 ¥${String.format("%.2f", currentAmount)}",
+                            fontSize = 13.sp,
+                            color = iOSOrange,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // 输入金额
+                Text(
+                    text = "💵 取出金额",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = amountText,
+                    onValueChange = { value ->
+                        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d{0,2}$"))) {
+                            val amount = value.toDoubleOrNull() ?: 0.0
+                            if (amount <= currentAmount) {
+                                amountText = value
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text("输入取出金额", color = Color(0xFFC7C7CC))
+                    },
+                    prefix = {
+                        Text(
+                            "¥",
+                            color = iOSOrange,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSOrange,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // 提示
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFFFF3CD))
+                        .padding(10.dp)
+                ) {
+                    Text(
+                        text = "⚠️ 取出后会减少目标进度",
+                        fontSize = 12.sp,
+                        color = Color(0xFF856404)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val amount = amountText.toDoubleOrNull()
+                    if (amount != null && amount > 0 && amount <= currentAmount) {
+                        onConfirm(amount)
+                    }
+                },
+                enabled = amountText.toDoubleOrNull()?.let { it > 0 && it <= currentAmount } == true
+            ) {
+                Text(
+                    text = "✓ 取出",
+                    color = if (amountText.toDoubleOrNull()?.let { it > 0 && it <= currentAmount } == true)
+                        iOSOrange else Color(0xFFC7C7CC),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    "取消",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 16.sp
+                )
+            }
+        }
+    )
 }
