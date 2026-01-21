@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,25 +21,15 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Backspace
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
@@ -54,20 +43,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.smartledger.presentation.ui.components.AppTopBarWithClose
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppShapes
-import com.example.smartledger.presentation.ui.theme.AppTypography
 import com.example.smartledger.utils.toColor
 
+// iOS风格颜色
+private val iOSBackground = Color(0xFFF2F2F7)
+private val iOSCardBackground = Color.White
+private val iOSAccent = Color(0xFF007AFF)
+private val iOSGreen = Color(0xFF34C759)
+private val iOSOrange = Color(0xFFFF9500)
+private val iOSRed = Color(0xFFFF3B30)
+
 /**
- * 记账页面
+ * 记账页面 - iOS卡通风格
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,7 +74,7 @@ fun RecordScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("支出", "收入", "转账")
+    val tabs = listOf("📉 支出", "📈 收入", "🔄 转账")
 
     // 对话框状态
     var showDatePicker by remember { mutableStateOf(false) }
@@ -121,67 +117,46 @@ fun RecordScreen(
     }
 
     Scaffold(
-        topBar = {
-            AppTopBarWithClose(
-                title = "记账",
-                onCloseClick = onNavigateBack
-            )
-        }
+        containerColor = iOSBackground
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.Background)
+                .background(iOSBackground)
                 .padding(paddingValues)
         ) {
+            // 顶部栏
+            IOSTopBar(
+                onClose = onNavigateBack
+            )
+
             // Tab切换
-            TabRow(
+            IOSTabRow(
+                tabs = tabs,
                 selectedTabIndex = selectedTabIndex,
-                containerColor = AppColors.Background,
-                contentColor = AppColors.Accent,
-                indicator = { tabPositions ->
-                    Box(
-                        modifier = Modifier
-                            .tabIndicatorOffset(tabPositions[selectedTabIndex])
-                            .height(3.dp)
-                            .padding(horizontal = 24.dp)
-                            .clip(AppShapes.Full)
-                            .background(AppColors.Accent)
-                    )
-                }
-            ) {
-                tabs.forEachIndexed { index, title ->
-                    Tab(
-                        selected = selectedTabIndex == index,
-                        onClick = {
-                            selectedTabIndex = index
-                            viewModel.setTransactionType(index)
-                        },
-                        text = {
-                            Text(
-                                text = title,
-                                style = AppTypography.LabelLarge,
-                                color = if (selectedTabIndex == index) AppColors.Accent else AppColors.TextMuted
-                            )
-                        }
-                    )
-                }
-            }
+                onTabSelected = { index ->
+                    selectedTabIndex = index
+                    viewModel.setTransactionType(index)
+                },
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+            )
 
             // 金额显示
             AmountDisplay(
                 amount = uiState.amountText,
+                isExpense = selectedTabIndex == 0,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = AppDimens.PaddingM, horizontal = AppDimens.PaddingL)
+                    .padding(vertical = 16.dp, horizontal = 20.dp)
             )
 
             // 分类选择网格
             Text(
-                text = "选择分类",
-                style = AppTypography.LabelMedium,
-                color = AppColors.TextSecondary,
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                text = "🏷️ 选择分类",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E),
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
 
             CategoryGrid(
@@ -190,7 +165,7 @@ fun RecordScreen(
                 onCategorySelected = { viewModel.selectCategory(it) },
                 modifier = Modifier
                     .weight(1f)
-                    .padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             )
 
             // 扩展字段
@@ -201,7 +176,7 @@ fun RecordScreen(
                 onDateClick = { showDatePicker = true },
                 onAccountClick = { showAccountPicker = true },
                 onNoteClick = { showNoteInput = true },
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
             )
 
             // 数字键盘
@@ -214,11 +189,110 @@ fun RecordScreen(
                     onSaveSuccess()
                 },
                 isConfirmEnabled = uiState.canSave,
+                isExpense = selectedTabIndex == 0,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(AppColors.Card)
-                    .padding(horizontal = AppDimens.PaddingM, vertical = AppDimens.PaddingS)
+                    .shadow(8.dp, RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+                    .background(iOSCardBackground)
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             )
+        }
+    }
+}
+
+/**
+ * iOS风格顶部栏
+ */
+@Composable
+private fun IOSTopBar(
+    onClose: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFE5E5EA))
+                    .clickable(onClick = onClose),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 16.sp,
+                    color = Color(0xFF8E8E93)
+                )
+            }
+
+            Text(
+                text = "📝 记一笔",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1C1C1E)
+            )
+
+            // 占位符保持居中
+            Spacer(modifier = Modifier.size(36.dp))
+        }
+    }
+}
+
+/**
+ * iOS风格Tab栏
+ */
+@Composable
+private fun IOSTabRow(
+    tabs: List<String>,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            tabs.forEachIndexed { index, title ->
+                val bgColor = when {
+                    selectedTabIndex == index && index == 0 -> iOSOrange
+                    selectedTabIndex == index && index == 1 -> iOSGreen
+                    selectedTabIndex == index && index == 2 -> iOSAccent
+                    else -> Color.Transparent
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(bgColor)
+                        .clickable { onTabSelected(index) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 14.sp,
+                        fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedTabIndex == index) Color.White else Color(0xFF8E8E93)
+                    )
+                }
+            }
         }
     }
 }
@@ -229,34 +303,47 @@ fun RecordScreen(
 @Composable
 private fun AmountDisplay(
     amount: String,
+    isExpense: Boolean,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Box(
+        modifier = modifier
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = if (isExpense) {
+                        listOf(Color(0xFFFF9500), Color(0xFFFF6B6B))
+                    } else {
+                        listOf(Color(0xFF34C759), Color(0xFF30D158))
+                    }
+                )
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.Bottom
         ) {
             Text(
                 text = "¥",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color.White
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
                 text = amount.ifEmpty { "0" },
-                style = AppTypography.NumberLarge.copy(
-                    fontSize = androidx.compose.ui.unit.TextUnit(36f, androidx.compose.ui.unit.TextUnitType.Sp)
-                ),
-                color = AppColors.TextPrimary
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
     }
 }
 
 /**
- * 分类选择网格 - 紧凑版
+ * 分类选择网格
  */
 @Composable
 private fun CategoryGrid(
@@ -268,8 +355,8 @@ private fun CategoryGrid(
     LazyVerticalGrid(
         columns = GridCells.Fixed(5),
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS),
-        verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(categories, key = { it.id }) { category ->
             CategoryItem(
@@ -282,7 +369,7 @@ private fun CategoryGrid(
 }
 
 /**
- * 分类项 - 紧凑版
+ * 分类项
  */
 @Composable
 private fun CategoryItem(
@@ -291,7 +378,7 @@ private fun CategoryItem(
     onClick: () -> Unit
 ) {
     val borderColor by animateColorAsState(
-        targetValue = if (isSelected) AppColors.Accent else Color.Transparent,
+        targetValue = if (isSelected) iOSAccent else Color.Transparent,
         label = "borderColor"
     )
 
@@ -299,15 +386,16 @@ private fun CategoryItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(vertical = 2.dp)
+            .padding(vertical = 4.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(48.dp)
+                .shadow(if (isSelected) 4.dp else 2.dp, CircleShape)
                 .clip(CircleShape)
-                .background(category.color.toColor())
+                .background(category.color.toColor().copy(alpha = 0.15f))
                 .border(
-                    width = 2.dp,
+                    width = if (isSelected) 3.dp else 0.dp,
                     color = borderColor,
                     shape = CircleShape
                 ),
@@ -315,14 +403,15 @@ private fun CategoryItem(
         ) {
             Text(
                 text = category.icon,
-                style = AppTypography.LabelLarge
+                fontSize = 22.sp
             )
         }
-        Spacer(modifier = Modifier.height(2.dp))
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = category.name,
-            style = AppTypography.LabelSmall,
-            color = if (isSelected) AppColors.Accent else AppColors.TextSecondary,
+            fontSize = 11.sp,
+            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+            color = if (isSelected) iOSAccent else Color(0xFF8E8E93),
             textAlign = TextAlign.Center,
             maxLines = 1
         )
@@ -343,69 +432,81 @@ private fun ExpandedFields(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(12.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         // 日期
-        Row(
-            modifier = Modifier.clickable(onClick = onDateClick),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF2F2F7))
+                .clickable(onClick = onDateClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.CalendarMonth,
-                contentDescription = "日期",
-                modifier = Modifier.size(20.dp),
-                tint = AppColors.TextSecondary
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = date,
-                style = AppTypography.LabelMedium,
-                color = AppColors.TextSecondary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "📅", fontSize = 14.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = date,
+                    fontSize = 13.sp,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
         }
 
         // 账户
-        Row(
-            modifier = Modifier.clickable(onClick = onAccountClick),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF2F2F7))
+                .clickable(onClick = onAccountClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Text(
-                text = accountName,
-                style = AppTypography.LabelMedium,
-                color = AppColors.TextSecondary
-            )
-            Icon(
-                imageVector = Icons.Filled.ExpandMore,
-                contentDescription = "选择账户",
-                modifier = Modifier.size(20.dp),
-                tint = AppColors.TextSecondary
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "🏦", fontSize = 14.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = accountName,
+                    fontSize = 13.sp,
+                    color = Color(0xFF1C1C1E)
+                )
+                Text(
+                    text = " ▼",
+                    fontSize = 10.sp,
+                    color = Color(0xFF8E8E93)
+                )
+            }
         }
 
         // 备注
-        Row(
-            modifier = Modifier.clickable(onClick = onNoteClick),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(Color(0xFFF2F2F7))
+                .clickable(onClick = onNoteClick)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Filled.Edit,
-                contentDescription = "备注",
-                modifier = Modifier.size(20.dp),
-                tint = AppColors.TextSecondary
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = note.ifEmpty { "添加备注" },
-                style = AppTypography.LabelMedium,
-                color = AppColors.TextMuted
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "✏️", fontSize = 14.sp)
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = note.ifEmpty { "备注" },
+                    fontSize = 13.sp,
+                    color = if (note.isEmpty()) Color(0xFF8E8E93) else Color(0xFF1C1C1E),
+                    maxLines = 1
+                )
+            }
         }
     }
 }
 
 /**
- * 数字键盘 - 紧凑版适配手机
+ * 数字键盘
  */
 @Composable
 private fun NumericKeypad(
@@ -414,13 +515,14 @@ private fun NumericKeypad(
     onBackspaceClick: () -> Unit,
     onConfirmClick: () -> Unit,
     isConfirmEnabled: Boolean,
+    isExpense: Boolean,
     modifier: Modifier = Modifier
 ) {
     val keys = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf(".", "0", "backspace")
+        listOf(".", "0", "⌫")
     )
 
     Row(modifier = modifier) {
@@ -429,14 +531,14 @@ private fun NumericKeypad(
             keys.forEach { row ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     row.forEach { key ->
                         KeypadButton(
                             key = key,
                             onClick = {
                                 when (key) {
-                                    "backspace" -> onBackspaceClick()
+                                    "⌫" -> onBackspaceClick()
                                     "." -> onDotClick()
                                     else -> onNumberClick(key)
                                 }
@@ -445,23 +547,24 @@ private fun NumericKeypad(
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
-        Spacer(modifier = Modifier.width(AppDimens.SpacingS))
+        Spacer(modifier = Modifier.width(8.dp))
 
-        // 确认按钮 - 右侧独立
+        // 确认按钮
         ConfirmButton(
             onClick = onConfirmClick,
             enabled = isConfirmEnabled,
+            isExpense = isExpense,
             modifier = Modifier.weight(1f)
         )
     }
 }
 
 /**
- * 键盘按钮 - 紧凑版
+ * 键盘按钮
  */
 @Composable
 private fun KeypadButton(
@@ -471,53 +574,59 @@ private fun KeypadButton(
 ) {
     Box(
         modifier = modifier
-            .height(44.dp)
-            .clip(AppShapes.Medium)
-            .background(AppColors.Background)
+            .height(52.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF2F2F7))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        if (key == "backspace") {
-            Icon(
-                imageVector = Icons.Filled.Backspace,
-                contentDescription = "退格",
-                tint = AppColors.TextPrimary,
-                modifier = Modifier.size(20.dp)
-            )
-        } else {
-            Text(
-                text = key,
-                style = AppTypography.NumberMedium,
-                color = AppColors.TextPrimary
-            )
-        }
+        Text(
+            text = key,
+            fontSize = if (key == "⌫") 20.sp else 24.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF1C1C1E)
+        )
     }
 }
 
 /**
- * 确认按钮 - 占满右侧高度
+ * 确认按钮
  */
 @Composable
 private fun ConfirmButton(
     onClick: () -> Unit,
     enabled: Boolean,
+    isExpense: Boolean,
     modifier: Modifier = Modifier
 ) {
-    // 4行按钮高度 + 3个间距 = 44*4 + 4*3 = 188dp
+    val bgColor = if (enabled) {
+        if (isExpense) iOSOrange else iOSGreen
+    } else {
+        Color(0xFFE5E5EA)
+    }
+
     Box(
         modifier = modifier
-            .height(188.dp)
-            .clip(AppShapes.Medium)
-            .background(if (enabled) AppColors.Accent else AppColors.Accent.copy(alpha = 0.5f))
+            .height(228.dp) // 4 rows * 52dp + 3 gaps * 8dp
+            .clip(RoundedCornerShape(16.dp))
+            .background(bgColor)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        Icon(
-            imageVector = Icons.Filled.Check,
-            contentDescription = "确认",
-            tint = Color.White,
-            modifier = Modifier.size(28.dp)
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "✓",
+                fontSize = 32.sp,
+                color = if (enabled) Color.White else Color(0xFF8E8E93)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "完成",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (enabled) Color.White else Color(0xFF8E8E93)
+            )
+        }
     }
 }
 
@@ -542,12 +651,12 @@ private fun DatePickerDialogContent(
                     datePickerState.selectedDateMillis?.let { onDateSelected(it) }
                 }
             ) {
-                Text("确定", color = AppColors.Accent)
+                Text("确定", color = iOSAccent, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextSecondary)
+                Text("取消", color = Color(0xFF8E8E93))
             }
         }
     ) {
@@ -566,33 +675,47 @@ private fun AccountPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = "选择账户",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
+                text = "🏦 选择账户",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1C1C1E)
             )
         },
         text = {
             LazyColumn {
                 items(accounts) { account ->
-                    Row(
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
                             .clickable { onAccountSelected(account.id) }
-                            .padding(vertical = AppDimens.PaddingM),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 12.dp, horizontal = 8.dp)
                     ) {
-                        Text(
-                            text = account.icon,
-                            style = AppTypography.TitleMedium
-                        )
-                        Spacer(modifier = Modifier.width(AppDimens.SpacingM))
-                        Text(
-                            text = account.name,
-                            style = AppTypography.BodyMedium,
-                            color = AppColors.TextPrimary
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFF2F2F7)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = account.icon,
+                                    fontSize = 20.sp
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = account.name,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF1C1C1E)
+                            )
+                        }
                     }
                 }
             }
@@ -600,10 +723,9 @@ private fun AccountPickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextSecondary)
+                Text("取消", color = Color(0xFF8E8E93))
             }
-        },
-        containerColor = AppColors.Card
+        }
     )
 }
 
@@ -620,11 +742,14 @@ private fun NoteInputDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = "添加备注",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
+                text = "✏️ 添加备注",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1C1C1E)
             )
         },
         text = {
@@ -635,28 +760,32 @@ private fun NoteInputDialog(
                 placeholder = {
                     Text(
                         text = "请输入备注...",
-                        color = AppColors.TextMuted
+                        color = Color(0xFF8E8E93)
                     )
                 },
                 keyboardOptions = KeyboardOptions(
                     imeAction = ImeAction.Done
                 ),
-                maxLines = 3
+                maxLines = 3,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = iOSAccent,
+                    unfocusedBorderColor = Color(0xFFE5E5EA)
+                )
             )
         },
         confirmButton = {
             TextButton(
                 onClick = { onNoteConfirmed(noteText) }
             ) {
-                Text("确定", color = AppColors.Accent)
+                Text("确定", color = iOSAccent, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextSecondary)
+                Text("取消", color = Color(0xFF8E8E93))
             }
-        },
-        containerColor = AppColors.Card
+        }
     )
 }
 
@@ -668,4 +797,13 @@ data class CategoryUiModel(
     val name: String,
     val icon: String,
     val color: String
+)
+
+/**
+ * 账户UI模型（用于记账页面）
+ */
+data class AccountUiModel(
+    val id: Long,
+    val name: String,
+    val icon: String
 )

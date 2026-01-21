@@ -1,5 +1,8 @@
 package com.example.smartledger.presentation.ui.assets
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,19 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
@@ -36,33 +28,46 @@ import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.smartledger.presentation.ui.components.AppCard
-import com.example.smartledger.presentation.ui.components.AppTopBar
 import com.example.smartledger.presentation.ui.components.DonutChart
-import com.example.smartledger.presentation.ui.components.GradientCard
 import com.example.smartledger.presentation.ui.components.LineChart
 import com.example.smartledger.presentation.ui.components.LineChartPoint
 import com.example.smartledger.presentation.ui.components.PieChartData
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppShapes
-import com.example.smartledger.presentation.ui.theme.AppTypography
 import com.example.smartledger.utils.toColor
 
+// iOS风格颜色
+private val iOSBackground = Color(0xFFF2F2F7)
+private val iOSCardBackground = Color.White
+private val iOSAccent = Color(0xFF007AFF)
+private val iOSGreen = Color(0xFF34C759)
+private val iOSOrange = Color(0xFFFF9500)
+private val iOSRed = Color(0xFFFF3B30)
+private val iOSPurple = Color(0xFFAF52DE)
+private val iOSPink = Color(0xFFFF2D55)
+
 /**
- * 资产页面
+ * 资产页面 - iOS卡通风格
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,133 +81,91 @@ fun AssetsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("资产", "收支", "投资")
+    val tabs = listOf("💰 资产", "📊 收支", "📈 投资")
 
     Scaffold(
-        topBar = {
-            AppTopBar(title = "资产")
-        },
-        floatingActionButton = {
-            if (selectedTabIndex == 0) {
-                FloatingActionButton(
-                    onClick = onNavigateToAccountAdd,
-                    containerColor = AppColors.Accent,
-                    contentColor = Color.White
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "添加账户")
-                }
-            }
-        }
+        containerColor = iOSBackground
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.Background)
+                .background(iOSBackground)
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingL)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 模块Tab
+            // 顶部标题
             item {
-                TabRow(
-                    selectedTabIndex = selectedTabIndex,
-                    containerColor = AppColors.Background,
-                    contentColor = AppColors.Accent,
-                    indicator = { tabPositions ->
-                        Box(
-                            modifier = Modifier
-                                .tabIndicatorOffset(tabPositions[selectedTabIndex])
-                                .height(3.dp)
-                                .padding(horizontal = 32.dp)
-                                .clip(AppShapes.Full)
-                                .background(AppColors.Accent)
-                        )
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
                 ) {
-                    tabs.forEachIndexed { index, title ->
-                        Tab(
-                            selected = selectedTabIndex == index,
-                            onClick = { selectedTabIndex = index },
-                            text = {
-                                Text(
-                                    text = title,
-                                    style = AppTypography.LabelLarge,
-                                    color = if (selectedTabIndex == index) AppColors.Accent else AppColors.TextMuted
-                                )
-                            }
-                        )
-                    }
+                    Text(
+                        text = "💎 我的资产",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1C1C1E)
+                    )
                 }
+            }
+
+            // iOS风格Tab
+            item {
+                IOSTabRow(
+                    tabs = tabs,
+                    selectedTabIndex = selectedTabIndex,
+                    onTabSelected = { selectedTabIndex = it },
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
 
             when (selectedTabIndex) {
                 0 -> {
                     // 资产模块
-                    // 总资产概览
                     item {
                         TotalAssetsCard(
                             totalAssets = uiState.totalAssets,
-                            modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
                     item {
                         HealthScoreCard(
                             score = uiState.healthScore,
-                            modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
-                    // 快捷入口：历史资产记录
+                    // 快捷入口
                     item {
-                        AppCard(
-                            modifier = Modifier
-                                .padding(horizontal = AppDimens.PaddingL)
-                                .clickable { onNavigateToAssetHistory() }
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "历史资产记录",
-                                        style = AppTypography.BodyMedium,
-                                        color = AppColors.TextPrimary
-                                    )
-                                    Text(
-                                        text = "查看每月资产快照与变化趋势",
-                                        style = AppTypography.Caption,
-                                        color = AppColors.TextMuted
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    tint = AppColors.TextMuted,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        QuickEntryCard(
+                            icon = "📅",
+                            title = "历史资产记录",
+                            subtitle = "查看每月资产快照与变化趋势",
+                            onClick = onNavigateToAssetHistory,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
                     }
 
+                    // 我的账户标题
                     item {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = AppDimens.PaddingL),
+                                .padding(horizontal = 20.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "我的账户",
-                                style = AppTypography.TitleSmall,
-                                color = AppColors.TextPrimary
+                                text = "🏦 我的账户",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E)
                             )
                             Text(
-                                text = "管理",
-                                style = AppTypography.LabelMedium,
-                                color = AppColors.Accent,
+                                text = "管理 →",
+                                fontSize = 14.sp,
+                                color = iOSAccent,
                                 modifier = Modifier.clickable { onNavigateToAccountManage() }
                             )
                         }
@@ -212,7 +175,7 @@ fun AssetsScreen(
                         item {
                             EmptyAccountsCard(
                                 onAddClick = onNavigateToAccountAdd,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     } else {
@@ -220,52 +183,58 @@ fun AssetsScreen(
                             AccountItem(
                                 account = account,
                                 onClick = { onNavigateToAccountDetail(account.id) },
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
+                    }
+
+                    // 添加账户按钮
+                    item {
+                        AddAccountButton(
+                            onClick = onNavigateToAccountAdd,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
                     }
                 }
 
                 1 -> {
-                    // 收支模块 - 增强版
+                    // 收支模块
                     item {
-                        IncomeExpenseOverview(
+                        IncomeExpenseCard(
                             income = uiState.monthlyIncome,
                             expense = uiState.monthlyExpense,
                             savingsRate = uiState.savingsRate,
-                            modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
-                    // 月度收支对比
                     item {
                         MonthlyComparisonCard(
                             currentIncome = uiState.monthlyIncome,
                             currentExpense = uiState.monthlyExpense,
                             lastMonthIncome = uiState.lastMonthIncome,
                             lastMonthExpense = uiState.lastMonthExpense,
-                            modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
-                    // 收支趋势图
                     if (uiState.dailyExpenseTrend.isNotEmpty()) {
                         item {
                             ExpenseTrendCard(
                                 dailyTrend = uiState.dailyExpenseTrend,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
 
-                    // 本月分类支出
                     if (uiState.categoryExpenses.isNotEmpty()) {
                         item {
                             Text(
-                                text = "本月支出分类",
-                                style = AppTypography.TitleSmall,
-                                color = AppColors.TextPrimary,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                text = "🏷️ 本月支出分类",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E),
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
 
@@ -273,66 +242,42 @@ fun AssetsScreen(
                             CategoryExpenseCard(
                                 categories = uiState.categoryExpenses,
                                 totalExpense = uiState.monthlyExpense,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
                 }
 
                 2 -> {
-                    // 投资模块 - 增强版
+                    // 投资模块
                     item {
-                        InvestmentOverview(
+                        InvestmentOverviewCard(
                             principal = uiState.investmentPrincipal,
                             currentValue = uiState.investmentCurrentValue,
                             totalReturn = uiState.investmentReturn,
                             returnRate = uiState.investmentReturnRate,
-                            modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                            modifier = Modifier.padding(horizontal = 20.dp)
                         )
                     }
 
-                    // 快捷入口：投资明细
                     item {
-                        AppCard(
-                            modifier = Modifier
-                                .padding(horizontal = AppDimens.PaddingL)
-                                .clickable { onNavigateToInvestmentHolding() }
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = "投资明细",
-                                        style = AppTypography.BodyMedium,
-                                        color = AppColors.TextPrimary
-                                    )
-                                    Text(
-                                        text = "查看具体持仓与收益详情",
-                                        style = AppTypography.Caption,
-                                        color = AppColors.TextMuted
-                                    )
-                                }
-                                Icon(
-                                    imageVector = Icons.Filled.ArrowForward,
-                                    contentDescription = null,
-                                    tint = AppColors.TextMuted,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
+                        QuickEntryCard(
+                            icon = "📋",
+                            title = "投资明细",
+                            subtitle = "查看具体持仓与收益详情",
+                            onClick = onNavigateToInvestmentHolding,
+                            modifier = Modifier.padding(horizontal = 20.dp)
+                        )
                     }
 
-                    // 投资账户列表
                     if (uiState.investmentAccounts.isNotEmpty()) {
                         item {
                             Text(
-                                text = "投资账户",
-                                style = AppTypography.TitleSmall,
-                                color = AppColors.TextPrimary,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                text = "💼 投资账户",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E),
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
 
@@ -340,22 +285,21 @@ fun AssetsScreen(
                             InvestmentAccountItem(
                                 account = account,
                                 onClick = { onNavigateToAccountDetail(account.id) },
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
 
-                        // 投资组合分布
                         item {
                             InvestmentAllocationCard(
                                 accounts = uiState.investmentAccounts,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     } else {
                         item {
                             EmptyInvestmentCard(
                                 onAddClick = onNavigateToAccountAdd,
-                                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                                modifier = Modifier.padding(horizontal = 20.dp)
                             )
                         }
                     }
@@ -363,8 +307,106 @@ fun AssetsScreen(
             }
 
             item {
-                Spacer(modifier = Modifier.height(AppDimens.SpacingXXL))
+                Spacer(modifier = Modifier.height(100.dp))
             }
+        }
+    }
+}
+
+/**
+ * iOS风格Tab栏
+ */
+@Composable
+private fun IOSTabRow(
+    tabs: List<String>,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(4.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (selectedTabIndex == index)
+                                iOSAccent
+                            else
+                                Color.Transparent
+                        )
+                        .clickable { onTabSelected(index) }
+                        .padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 14.sp,
+                        fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedTabIndex == index) Color.White else Color(0xFF8E8E93)
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 总资产卡片
+ */
+@Composable
+private fun TotalAssetsCard(
+    totalAssets: Double,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF667eea),
+                        Color(0xFF764ba2)
+                    )
+                )
+            )
+            .padding(24.dp)
+    ) {
+        Column {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💰",
+                    fontSize = 24.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "总资产",
+                    fontSize = 16.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "¥ ${String.format("%,.2f", totalAssets)}",
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
         }
     }
 }
@@ -377,9 +419,24 @@ private fun HealthScoreCard(
     score: Int,
     modifier: Modifier = Modifier
 ) {
-    GradientCard(
-        modifier = modifier.fillMaxWidth(),
-        gradientColors = AppColors.GradientAssetCard
+    var animatedProgress by remember { mutableFloatStateOf(0f) }
+    val animatedScore by animateFloatAsState(
+        targetValue = animatedProgress,
+        animationSpec = tween(1000),
+        label = "score"
+    )
+
+    LaunchedEffect(score) {
+        animatedProgress = score / 100f
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -387,44 +444,142 @@ private fun HealthScoreCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = "财务健康分",
-                    style = AppTypography.BodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "❤️", fontSize = 20.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "财务健康分",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.Bottom) {
                     Text(
                         text = score.toString(),
-                        style = AppTypography.NumberLarge,
-                        color = Color.White
+                        fontSize = 40.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = getScoreColor(score)
                     )
                     Text(
                         text = " / 100",
-                        style = AppTypography.BodyMedium,
-                        color = Color.White.copy(alpha = 0.5f)
+                        fontSize = 16.sp,
+                        color = Color(0xFF8E8E93)
                     )
                 }
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = getHealthScoreDescription(score),
-                    style = AppTypography.LabelSmall,
-                    color = AppColors.Success
+                    fontSize = 14.sp,
+                    color = getScoreColor(score)
                 )
             }
 
-            // 圆环进度
+            // 圆形进度
             Box(
                 modifier = Modifier.size(80.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // TODO: 添加圆环进度指示器
+                Canvas(modifier = Modifier.size(80.dp)) {
+                    val strokeWidth = 8.dp.toPx()
+                    val radius = (size.minDimension - strokeWidth) / 2
+                    val center = Offset(size.width / 2, size.height / 2)
+
+                    // 背景圆
+                    drawCircle(
+                        color = Color(0xFFE5E5EA),
+                        radius = radius,
+                        center = center,
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+
+                    // 进度圆
+                    drawArc(
+                        color = getScoreColor(score),
+                        startAngle = -90f,
+                        sweepAngle = animatedScore * 360f,
+                        useCenter = false,
+                        topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                        size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                    )
+                }
                 Text(
-                    text = "${score}%",
-                    style = AppTypography.TitleMedium,
-                    color = Color.White
+                    text = "${(animatedScore * 100).toInt()}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = getScoreColor(score)
                 )
             }
+        }
+    }
+}
+
+private fun getScoreColor(score: Int): Color {
+    return when {
+        score >= 80 -> Color(0xFF34C759)
+        score >= 60 -> Color(0xFFFF9500)
+        else -> Color(0xFFFF3B30)
+    }
+}
+
+private fun getHealthScoreDescription(score: Int): String {
+    return when {
+        score >= 90 -> "财务状况优秀 🌟"
+        score >= 70 -> "财务状况良好 👍"
+        score >= 50 -> "财务状况一般 📊"
+        else -> "需要改善 ⚠️"
+    }
+}
+
+/**
+ * 快捷入口卡片
+ */
+@Composable
+private fun QuickEntryCard(
+    icon: String,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .clickable(onClick = onClick)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = icon, fontSize = 28.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = title,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
+            }
+            Text(
+                text = "→",
+                fontSize = 20.sp,
+                color = Color(0xFFC7C7CC)
+            )
         }
     }
 }
@@ -438,9 +593,14 @@ private fun AccountItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .clickable(onClick = onClick)
+            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -450,112 +610,41 @@ private fun AccountItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(account.color))),
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(android.graphics.Color.parseColor(account.color)).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = account.icon, style = AppTypography.BodyLarge)
+                    Text(text = account.icon, fontSize = 24.sp)
                 }
-                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = account.name,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
                     )
                     Text(
                         text = account.typeName,
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
                     )
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "¥${String.format("%.2f", account.balance)}",
-                    style = AppTypography.NumberSmall,
-                    color = AppColors.TextPrimary
+                    text = "¥${String.format("%,.2f", account.balance)}",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Icon(
-                    imageVector = Icons.Filled.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = AppColors.TextMuted
-                )
-            }
-        }
-    }
-}
-
-/**
- * 收支概览
- */
-@Composable
-private fun IncomeExpenseOverview(
-    income: Double,
-    expense: Double,
-    savingsRate: Float,
-    modifier: Modifier = Modifier
-) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "本月收支",
-                style = AppTypography.TitleSmall,
-                color = AppColors.TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "收入",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                    Text(
-                        text = "¥${String.format("%.2f", income)}",
-                        style = AppTypography.NumberMedium,
-                        color = AppColors.Success
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "支出",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                    Text(
-                        text = "¥${String.format("%.2f", expense)}",
-                        style = AppTypography.NumberMedium,
-                        color = AppColors.Accent
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(
-                    text = "储蓄率",
-                    style = AppTypography.BodyMedium,
-                    color = AppColors.TextSecondary
-                )
-                Text(
-                    text = "${String.format("%.1f", savingsRate * 100)}%",
-                    style = AppTypography.NumberSmall,
-                    color = if (savingsRate >= 0.2) AppColors.Success else AppColors.Warning
+                    text = "→",
+                    fontSize = 16.sp,
+                    color = Color(0xFFC7C7CC)
                 )
             }
         }
@@ -563,108 +652,30 @@ private fun IncomeExpenseOverview(
 }
 
 /**
- * 投资概览
+ * 添加账户按钮
  */
 @Composable
-private fun InvestmentOverview(
-    principal: Double,
-    currentValue: Double,
-    totalReturn: Double,
-    returnRate: Float,
+private fun AddAccountButton(
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Column {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSAccent.copy(alpha = 0.1f))
+            .clickable(onClick = onClick)
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = "➕", fontSize = 18.sp)
+            Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "投资概览",
-                style = AppTypography.TitleSmall,
-                color = AppColors.TextPrimary
-            )
-
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "总本金",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                    Text(
-                        text = "¥${String.format("%.2f", principal)}",
-                        style = AppTypography.NumberSmall,
-                        color = AppColors.TextPrimary
-                    )
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "当前市值",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                    Text(
-                        text = "¥${String.format("%.2f", currentValue)}",
-                        style = AppTypography.NumberSmall,
-                        color = AppColors.TextPrimary
-                    )
-                }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text(
-                        text = "总收益",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                    Text(
-                        text = "${if (totalReturn >= 0) "+" else ""}¥${String.format("%.2f", totalReturn)}",
-                        style = AppTypography.NumberSmall,
-                        color = if (totalReturn >= 0) AppColors.Success else AppColors.Accent
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
-
-            Text(
-                text = "收益率: ${if (returnRate >= 0) "+" else ""}${String.format("%.2f", returnRate * 100)}%",
-                style = AppTypography.LabelMedium,
-                color = if (returnRate >= 0) AppColors.Success else AppColors.Accent
-            )
-        }
-    }
-}
-
-private fun getHealthScoreDescription(score: Int): String {
-    return when {
-        score >= 90 -> "财务状况优秀"
-        score >= 70 -> "财务状况良好"
-        score >= 50 -> "财务状况一般"
-        else -> "需要改善财务状况"
-    }
-}
-
-/**
- * 总资产卡片
- */
-@Composable
-private fun TotalAssetsCard(
-    totalAssets: Double,
-    modifier: Modifier = Modifier
-) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "总资产",
-                style = AppTypography.Caption,
-                color = AppColors.TextMuted
-            )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingS))
-            Text(
-                text = "¥${String.format("%,.2f", totalAssets)}",
-                style = AppTypography.NumberLarge,
-                color = AppColors.TextPrimary
+                text = "添加账户",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = iOSAccent
             )
         }
     }
@@ -678,41 +689,145 @@ private fun EmptyAccountsCard(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppDimens.PaddingL),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Filled.AccountBalance,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = AppColors.TextMuted
-            )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "🏦", fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "还没有账户",
-                style = AppTypography.BodyMedium,
-                color = AppColors.TextSecondary
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1C1C1E)
             )
             Text(
-                text = "添加您的银行卡、支付宝、微信等账户",
-                style = AppTypography.Caption,
-                color = AppColors.TextMuted,
+                text = "添加银行卡、支付宝、微信等账户",
+                fontSize = 14.sp,
+                color = Color(0xFF8E8E93),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
-            Button(
-                onClick = onAddClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Accent
-                )
+            Spacer(modifier = Modifier.height(20.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iOSAccent)
+                    .clickable(onClick = onAddClick)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(AppDimens.SpacingS))
-                Text("添加账户")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "➕", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "添加账户",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 收支概览卡片
+ */
+@Composable
+private fun IncomeExpenseCard(
+    income: Double,
+    expense: Double,
+    savingsRate: Float,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
+        Column {
+            Text(
+                text = "📊 本月收支",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
+            )
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 收入
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "📈", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "收入",
+                            fontSize = 14.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "¥${String.format("%,.2f", income)}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iOSGreen
+                    )
+                }
+
+                // 支出
+                Column(horizontalAlignment = Alignment.End) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "📉", fontSize = 16.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "支出",
+                            fontSize = 14.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "¥${String.format("%,.2f", expense)}",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iOSOrange
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // 储蓄率
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "💰 储蓄率",
+                    fontSize = 14.sp,
+                    color = Color(0xFF8E8E93)
+                )
+                Text(
+                    text = "${String.format("%.1f", savingsRate * 100)}%",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (savingsRate >= 0.2) iOSGreen else iOSOrange
+                )
             }
         }
     }
@@ -731,16 +846,25 @@ private fun MonthlyComparisonCard(
 ) {
     val incomeChange = if (lastMonthIncome > 0) ((currentIncome - lastMonthIncome) / lastMonthIncome * 100) else 0.0
     val expenseChange = if (lastMonthExpense > 0) ((currentExpense - lastMonthExpense) / lastMonthExpense * 100) else 0.0
+    val currentNet = currentIncome - currentExpense
 
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
         Column {
             Text(
-                text = "与上月对比",
-                style = AppTypography.TitleSmall,
-                color = AppColors.TextPrimary
+                text = "📅 与上月对比",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
             )
 
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -750,21 +874,20 @@ private fun MonthlyComparisonCard(
                 Column {
                     Text(
                         text = "收入变化",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (incomeChange >= 0) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (incomeChange >= 0) AppColors.Success else AppColors.Accent
+                        Text(
+                            text = if (incomeChange >= 0) "📈" else "📉",
+                            fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${if (incomeChange >= 0) "+" else ""}${String.format("%.1f", incomeChange)}%",
-                            style = AppTypography.NumberSmall,
-                            color = if (incomeChange >= 0) AppColors.Success else AppColors.Accent
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (incomeChange >= 0) iOSGreen else iOSRed
                         )
                     }
                 }
@@ -773,45 +896,42 @@ private fun MonthlyComparisonCard(
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "支出变化",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
                     )
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = if (expenseChange <= 0) Icons.Filled.TrendingDown else Icons.Filled.TrendingUp,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = if (expenseChange <= 0) AppColors.Success else AppColors.Accent
+                        Text(
+                            text = if (expenseChange <= 0) "📉" else "📈",
+                            fontSize = 14.sp
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = "${if (expenseChange >= 0) "+" else ""}${String.format("%.1f", expenseChange)}%",
-                            style = AppTypography.NumberSmall,
-                            color = if (expenseChange <= 0) AppColors.Success else AppColors.Accent
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (expenseChange <= 0) iOSGreen else iOSRed
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 净结余
-            val currentNet = currentIncome - currentExpense
-            val lastMonthNet = lastMonthIncome - lastMonthExpense
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "本月净结余",
-                    style = AppTypography.BodyMedium,
-                    color = AppColors.TextSecondary
+                    text = "📊 本月净结余",
+                    fontSize = 14.sp,
+                    color = Color(0xFF8E8E93)
                 )
                 Text(
-                    text = "${if (currentNet >= 0) "+" else ""}¥${String.format("%.2f", currentNet)}",
-                    style = AppTypography.NumberSmall,
-                    color = if (currentNet >= 0) AppColors.Success else AppColors.Accent
+                    text = "${if (currentNet >= 0) "+" else ""}¥${String.format("%,.2f", currentNet)}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (currentNet >= 0) iOSGreen else iOSRed
                 )
             }
         }
@@ -826,15 +946,23 @@ private fun ExpenseTrendCard(
     dailyTrend: List<DailyTrendUiModel>,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
         Column {
             Text(
-                text = "本月支出趋势",
-                style = AppTypography.TitleSmall,
-                color = AppColors.TextPrimary
+                text = "📈 本月支出趋势",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
             )
 
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+            Spacer(modifier = Modifier.height(16.dp))
 
             val linePoints = dailyTrend.mapIndexed { index, daily ->
                 LineChartPoint(index.toFloat(), daily.amount, daily.label)
@@ -842,9 +970,9 @@ private fun ExpenseTrendCard(
 
             LineChart(
                 points = linePoints,
-                modifier = Modifier.padding(vertical = AppDimens.PaddingS),
+                modifier = Modifier.padding(vertical = 8.dp),
                 height = 150.dp,
-                lineColor = AppColors.Accent,
+                lineColor = iOSAccent,
                 showGrid = true
             )
         }
@@ -860,7 +988,14 @@ private fun CategoryExpenseCard(
     totalExpense: Double,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
         Column {
             // 饼图
             if (categories.isNotEmpty() && totalExpense > 0) {
@@ -885,7 +1020,7 @@ private fun CategoryExpenseCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+                Spacer(modifier = Modifier.height(20.dp))
             }
 
             // 分类列表
@@ -894,7 +1029,7 @@ private fun CategoryExpenseCard(
                     category = category,
                     maxAmount = categories.firstOrNull()?.amount ?: 1.0
                 )
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
     }
@@ -916,15 +1051,15 @@ private fun CategoryExpenseItem(
     ) {
         Box(
             modifier = Modifier
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(category.color.toColor()),
+                .size(36.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(category.color.toColor().copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = category.icon, style = AppTypography.BodySmall)
+            Text(text = category.icon, fontSize = 18.sp)
         }
 
-        Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(
@@ -933,27 +1068,139 @@ private fun CategoryExpenseItem(
             ) {
                 Text(
                     text = category.name,
-                    style = AppTypography.BodySmall,
-                    color = AppColors.TextPrimary
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1C1C1E)
                 )
                 Text(
                     text = "¥${String.format("%.2f", category.amount)}",
-                    style = AppTypography.LabelSmall,
-                    color = AppColors.TextPrimary
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
                 )
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             LinearProgressIndicator(
-                progress = progress,
+                progress = { progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(4.dp)
-                    .clip(AppShapes.Full),
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp)),
                 color = category.color.toColor(),
-                trackColor = AppColors.Border
+                trackColor = Color(0xFFE5E5EA),
             )
+        }
+    }
+}
+
+/**
+ * 投资概览卡片
+ */
+@Composable
+private fun InvestmentOverviewCard(
+    principal: Double,
+    currentValue: Double,
+    totalReturn: Double,
+    returnRate: Float,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF11998e),
+                        Color(0xFF38ef7d)
+                    )
+                )
+            )
+            .padding(24.dp)
+    ) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "📈", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "投资概览",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "总本金",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = "¥${String.format("%,.2f", principal)}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "当前市值",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = "¥${String.format("%,.2f", currentValue)}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = "总收益",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = "${if (totalReturn >= 0) "+" else ""}¥${String.format("%.2f", totalReturn)}",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.White.copy(alpha = 0.2f))
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = if (returnRate >= 0) "📈" else "📉",
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "收益率: ${if (returnRate >= 0) "+" else ""}${String.format("%.2f", returnRate * 100)}%",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
+            }
         }
     }
 }
@@ -970,9 +1217,14 @@ private fun InvestmentAccountItem(
     val returnAmount = account.currentValue - account.principal
     val returnRate = if (account.principal > 0) (returnAmount / account.principal * 100) else 0.0
 
-    AppCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .clickable(onClick = onClick)
+            .padding(16.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -982,45 +1234,46 @@ private fun InvestmentAccountItem(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(Color(android.graphics.Color.parseColor(account.color))),
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color(android.graphics.Color.parseColor(account.color)).copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = account.icon, style = AppTypography.BodyLarge)
+                    Text(text = account.icon, fontSize = 24.sp)
                 }
-                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = account.name,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
                     )
                     Text(
                         text = account.typeName,
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
                     )
                 }
             }
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "¥${String.format("%.2f", account.currentValue)}",
-                    style = AppTypography.NumberSmall,
-                    color = AppColors.TextPrimary
+                    text = "¥${String.format("%,.2f", account.currentValue)}",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF1C1C1E)
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = if (returnAmount >= 0) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = if (returnAmount >= 0) AppColors.Success else AppColors.Accent
+                    Text(
+                        text = if (returnAmount >= 0) "📈" else "📉",
+                        fontSize = 12.sp
                     )
                     Text(
                         text = "${if (returnRate >= 0) "+" else ""}${String.format("%.2f", returnRate)}%",
-                        style = AppTypography.Caption,
-                        color = if (returnAmount >= 0) AppColors.Success else AppColors.Accent
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (returnAmount >= 0) iOSGreen else iOSRed
                     )
                 }
             }
@@ -1038,15 +1291,23 @@ private fun InvestmentAllocationCard(
 ) {
     val totalValue = accounts.sumOf { it.currentValue }
 
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
         Column {
             Text(
-                text = "投资组合分布",
-                style = AppTypography.TitleSmall,
-                color = AppColors.TextPrimary
+                text = "🥧 投资组合分布",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
             )
 
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (accounts.isNotEmpty() && totalValue > 0) {
                 val pieData = accounts.map { account ->
@@ -1070,14 +1331,14 @@ private fun InvestmentAllocationCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 accounts.forEach { account ->
                     val percent = (account.currentValue / totalValue * 100)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(vertical = 6.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1088,17 +1349,18 @@ private fun InvestmentAllocationCard(
                                     .clip(CircleShape)
                                     .background(account.color.toColor())
                             )
-                            Spacer(modifier = Modifier.width(AppDimens.SpacingS))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = account.name,
-                                style = AppTypography.BodySmall,
-                                color = AppColors.TextPrimary
+                                fontSize = 14.sp,
+                                color = Color(0xFF1C1C1E)
                             )
                         }
                         Text(
                             text = "${String.format("%.1f", percent)}%",
-                            style = AppTypography.LabelSmall,
-                            color = AppColors.TextMuted
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8E8E93)
                         )
                     }
                 }
@@ -1115,41 +1377,48 @@ private fun EmptyInvestmentCard(
     onAddClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(AppDimens.PaddingL),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Icon(
-                imageVector = Icons.Filled.TrendingUp,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = AppColors.TextMuted
-            )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "📈", fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "还没有投资账户",
-                style = AppTypography.BodyMedium,
-                color = AppColors.TextSecondary
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1C1C1E)
             )
             Text(
                 text = "添加股票、基金、定期存款等投资账户",
-                style = AppTypography.Caption,
-                color = AppColors.TextMuted,
+                fontSize = 14.sp,
+                color = Color(0xFF8E8E93),
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
-            Button(
-                onClick = onAddClick,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = AppColors.Accent
-                )
+            Spacer(modifier = Modifier.height(20.dp))
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(iOSGreen)
+                    .clickable(onClick = onAddClick)
+                    .padding(horizontal = 24.dp, vertical = 12.dp)
             ) {
-                Icon(Icons.Filled.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(AppDimens.SpacingS))
-                Text("添加投资账户")
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = "➕", fontSize = 16.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "添加投资账户",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White
+                    )
+                }
             }
         }
     }

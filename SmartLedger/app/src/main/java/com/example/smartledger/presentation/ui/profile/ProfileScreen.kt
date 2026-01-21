@@ -15,24 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.AccountBalanceWallet
-import androidx.compose.material.icons.filled.Backup
-import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.HealthAndSafety
-import androidx.compose.material.icons.filled.Repeat
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,17 +33,28 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.smartledger.presentation.ui.components.AppCard
-import com.example.smartledger.presentation.ui.components.AppTopBar
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppTypography
+
+// iOS风格颜色
+private val iOSBackground = Color(0xFFF2F2F7)
+private val iOSCardBackground = Color.White
+private val iOSAccent = Color(0xFF007AFF)
+private val iOSGreen = Color(0xFF34C759)
+private val iOSOrange = Color(0xFFFF9500)
+private val iOSRed = Color(0xFFFF3B30)
+private val iOSPurple = Color(0xFFAF52DE)
+private val iOSPink = Color(0xFFFF2D55)
 
 /**
- * 我的页面
+ * 我的页面 - iOS卡通风格
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,17 +86,31 @@ fun ProfileScreen(
     }
 
     Scaffold(
-        topBar = {
-            AppTopBar(title = "我的")
-        }
+        containerColor = iOSBackground
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.Background)
+                .background(iOSBackground)
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingL)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 顶部标题
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "👤 我的",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                }
+            }
+
             // 用户信息卡片
             item {
                 UserInfoCard(
@@ -105,143 +118,100 @@ fun ProfileScreen(
                     daysSinceStart = uiState.daysSinceStart,
                     totalTransactions = uiState.totalTransactions,
                     onEditClick = { showEditDialog = true },
-                    modifier = Modifier.padding(
-                        start = AppDimens.PaddingL,
-                        end = AppDimens.PaddingL,
-                        top = AppDimens.PaddingL
-                    )
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
-            // 功能入口
+            // 功能入口 - 记账工具
             item {
-                AppCard(
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
-                ) {
-                    ProfileMenuItem(
-                        icon = Icons.Filled.AccountBalanceWallet,
-                        title = "预算管理",
-                        subtitle = "设置和跟踪您的预算",
-                        onClick = onNavigateToBudget
-                    )
+                Text(
+                    text = "📱 记账工具",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
 
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Flag,
-                        title = "储蓄目标",
-                        subtitle = "创建和追踪储蓄目标",
-                        onClick = onNavigateToGoals
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Repeat,
-                        title = "固定收支",
-                        subtitle = "管理定期自动记账",
-                        onClick = onNavigateToRecurring
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Outlined.SmartToy,
-                        title = "AI助手",
-                        subtitle = "智能记账，轻松管理财务",
-                        onClick = onNavigateToAiChat
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Category,
-                        title = "分类管理",
-                        subtitle = "自定义收支分类",
-                        onClick = onNavigateToCategoryManage
-                    )
-                }
+            item {
+                MenuSection(
+                    items = listOf(
+                        MenuItemData("💰", "预算管理", "设置和跟踪您的预算", iOSGreen, onNavigateToBudget),
+                        MenuItemData("🎯", "储蓄目标", "创建和追踪储蓄目标", iOSOrange, onNavigateToGoals),
+                        MenuItemData("🔄", "固定收支", "管理定期自动记账", iOSAccent, onNavigateToRecurring),
+                        MenuItemData("🤖", "AI助手", "智能记账，轻松管理财务", iOSPurple, onNavigateToAiChat),
+                        MenuItemData("🏷️", "分类管理", "自定义收支分类", iOSPink, onNavigateToCategoryManage)
+                    ),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
             }
 
             // 分析与报告
             item {
-                AppCard(
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
-                ) {
-                    ProfileMenuItem(
-                        icon = Icons.Filled.HealthAndSafety,
-                        title = "财务健康诊断",
-                        subtitle = "全面分析您的财务状况",
-                        onClick = onNavigateToFinancialHealth
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Assessment,
-                        title = "财务报告",
-                        subtitle = "周报、月报、年报",
-                        onClick = onNavigateToReport
-                    )
-                }
-            }
-
-            // 其他功能
-            item {
-                AppCard(
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
-                ) {
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Backup,
-                        title = "备份与恢复",
-                        subtitle = "保护您的数据安全",
-                        onClick = onNavigateToBackup
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(start = 40.dp),
-                        color = AppColors.Divider
-                    )
-
-                    ProfileMenuItem(
-                        icon = Icons.Filled.Settings,
-                        title = "设置",
-                        subtitle = "货币、提醒、主题等",
-                        onClick = onNavigateToSettings
-                    )
-                }
-            }
-
-            // 版本信息
-            item {
                 Text(
-                    text = "智能记账 v1.0.0",
-                    style = AppTypography.Caption,
-                    color = AppColors.TextMuted,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(AppDimens.PaddingL),
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    text = "📊 分析与报告",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
             item {
-                Spacer(modifier = Modifier.height(AppDimens.SpacingXXL))
+                MenuSection(
+                    items = listOf(
+                        MenuItemData("❤️", "财务健康诊断", "全面分析您的财务状况", iOSRed, onNavigateToFinancialHealth),
+                        MenuItemData("📈", "财务报告", "周报、月报、年报", iOSGreen, onNavigateToReport)
+                    ),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+
+            // 其他功能
+            item {
+                Text(
+                    text = "⚙️ 设置",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+
+            item {
+                MenuSection(
+                    items = listOf(
+                        MenuItemData("☁️", "备份与恢复", "保护您的数据安全", iOSAccent, onNavigateToBackup),
+                        MenuItemData("⚙️", "设置", "货币、提醒、主题等", Color(0xFF8E8E93), onNavigateToSettings)
+                    ),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+
+            // 版本信息
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "📱 智能记账",
+                        fontSize = 14.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "v1.0.0",
+                        fontSize = 12.sp,
+                        color = Color(0xFFC7C7CC)
+                    )
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(80.dp))
             }
         }
     }
@@ -258,7 +228,21 @@ private fun UserInfoCard(
     onEditClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(8.dp, RoundedCornerShape(24.dp))
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF667eea),
+                        Color(0xFF764ba2)
+                    )
+                )
+            )
+            .padding(24.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -266,43 +250,160 @@ private fun UserInfoCard(
             // 头像
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(72.dp)
                     .clip(CircleShape)
-                    .background(AppColors.AccentLight),
+                    .background(Color.White.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = username.firstOrNull()?.uppercase() ?: "U",
-                    style = AppTypography.TitleLarge,
-                    color = AppColors.Accent
+                    text = username.firstOrNull()?.uppercase() ?: "😊",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
                 )
             }
 
-            Spacer(modifier = Modifier.width(AppDimens.SpacingL))
+            Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = username,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color.White.copy(alpha = 0.2f))
+                            .clickable(onClick = onEditClick)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "✏️",
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = username,
-                    style = AppTypography.TitleMedium,
-                    color = AppColors.TextPrimary
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = if (daysSinceStart > 0) "记账 $daysSinceStart 天 | 共 $totalTransactions 笔" else "开始记账吧",
-                    style = AppTypography.Caption,
-                    color = AppColors.TextMuted
-                )
-            }
-
-            IconButton(onClick = onEditClick) {
-                Icon(
-                    imageVector = Icons.Filled.Edit,
-                    contentDescription = "编辑",
-                    tint = AppColors.TextMuted,
-                    modifier = Modifier.size(20.dp)
+                    text = if (daysSinceStart > 0)
+                        "📅 记账 $daysSinceStart 天 · 📝 共 $totalTransactions 笔"
+                    else
+                        "✨ 开始记账吧",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.8f)
                 )
             }
         }
+    }
+}
+
+/**
+ * 菜单项数据
+ */
+private data class MenuItemData(
+    val icon: String,
+    val title: String,
+    val subtitle: String,
+    val color: Color,
+    val onClick: () -> Unit
+)
+
+/**
+ * 菜单组
+ */
+@Composable
+private fun MenuSection(
+    items: List<MenuItemData>,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+    ) {
+        Column {
+            items.forEachIndexed { index, item ->
+                MenuItem(
+                    icon = item.icon,
+                    title = item.title,
+                    subtitle = item.subtitle,
+                    iconColor = item.color,
+                    onClick = item.onClick
+                )
+                if (index < items.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 68.dp)
+                            .height(1.dp)
+                            .background(Color(0xFFE5E5EA))
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 菜单项
+ */
+@Composable
+private fun MenuItem(
+    icon: String,
+    title: String,
+    subtitle: String,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(iconColor.copy(alpha = 0.15f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = icon,
+                fontSize = 22.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.width(12.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1C1C1E)
+            )
+            Text(
+                text = subtitle,
+                fontSize = 13.sp,
+                color = Color(0xFF8E8E93)
+            )
+        }
+
+        Text(
+            text = "→",
+            fontSize = 18.sp,
+            color = Color(0xFFC7C7CC)
+        )
     }
 }
 
@@ -319,11 +420,14 @@ private fun EditUsernameDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(20.dp),
         title = {
             Text(
-                text = "编辑用户名",
-                style = AppTypography.TitleMedium,
-                color = AppColors.TextPrimary
+                text = "✏️ 编辑用户名",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1C1C1E)
             )
         },
         text = {
@@ -332,9 +436,17 @@ private fun EditUsernameDialog(
                 onValueChange = { username = it },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
-                    Text("输入用户名", color = AppColors.TextMuted)
+                    Text("输入用户名", color = Color(0xFF8E8E93))
                 },
-                singleLine = true
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = iOSAccent,
+                    unfocusedBorderColor = Color(0xFFE5E5EA)
+                ),
+                keyboardOptions = KeyboardOptions(
+                    imeAction = ImeAction.Done
+                )
             )
         },
         confirmButton = {
@@ -342,61 +454,17 @@ private fun EditUsernameDialog(
                 onClick = { onConfirm(username) },
                 enabled = username.isNotBlank()
             ) {
-                Text("保存", color = AppColors.Accent)
+                Text(
+                    text = "保存",
+                    color = if (username.isNotBlank()) iOSAccent else Color(0xFFC7C7CC),
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("取消", color = AppColors.TextMuted)
+                Text("取消", color = Color(0xFF8E8E93))
             }
         }
     )
-}
-
-/**
- * 菜单项
- */
-@Composable
-private fun ProfileMenuItem(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = AppDimens.PaddingM),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = AppColors.Accent
-        )
-
-        Spacer(modifier = Modifier.width(AppDimens.SpacingL))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = AppTypography.BodyMedium,
-                color = AppColors.TextPrimary
-            )
-            Text(
-                text = subtitle,
-                style = AppTypography.Caption,
-                color = AppColors.TextMuted
-            )
-        }
-
-        Icon(
-            imageVector = Icons.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = AppColors.TextMuted
-        )
-    }
 }

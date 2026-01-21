@@ -16,19 +16,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.PieChart
-import androidx.compose.material.icons.filled.ShowChart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -41,13 +30,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.smartledger.data.local.entity.TransactionType
-import com.example.smartledger.presentation.ui.components.AppCard
-import com.example.smartledger.presentation.ui.components.AppTopBar
 import com.example.smartledger.presentation.ui.components.BarChart
 import com.example.smartledger.presentation.ui.components.BarChartData
 import com.example.smartledger.presentation.ui.components.ChartLegend
@@ -55,14 +46,19 @@ import com.example.smartledger.presentation.ui.components.DonutChart
 import com.example.smartledger.presentation.ui.components.LineChart
 import com.example.smartledger.presentation.ui.components.LineChartPoint
 import com.example.smartledger.presentation.ui.components.PieChartData
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppShapes
-import com.example.smartledger.presentation.ui.theme.AppTypography
 import com.example.smartledger.utils.toColor
 
+// iOS风格颜色
+private val iOSBackground = Color(0xFFF2F2F7)
+private val iOSCardBackground = Color.White
+private val iOSAccent = Color(0xFF007AFF)
+private val iOSGreen = Color(0xFF34C759)
+private val iOSOrange = Color(0xFFFF9500)
+private val iOSRed = Color(0xFFFF3B30)
+private val iOSPurple = Color(0xFFAF52DE)
+
 /**
- * 统计页面
+ * 统计页面 - iOS卡通风格
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,23 +71,37 @@ fun StatsScreen(
     var selectedChartType by remember { mutableStateOf("pie") }
 
     Scaffold(
-        topBar = {
-            AppTopBar(title = "统计")
-        }
+        containerColor = iOSBackground
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AppColors.Background)
+                .background(iOSBackground)
                 .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingL)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // 顶部标题
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                ) {
+                    Text(
+                        text = "📊 统计分析",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                }
+            }
+
             // 时间筛选
             item {
                 TimeFilterTabs(
                     selectedPeriod = uiState.selectedPeriod,
                     onPeriodSelected = { viewModel.setPeriod(it) },
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
@@ -100,22 +110,23 @@ fun StatsScreen(
                 item {
                     Text(
                         text = uiState.periodLabel,
-                        style = AppTypography.TitleMedium,
-                        color = AppColors.TextPrimary,
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
             }
 
-            // 汇总卡片（带环比）
+            // 汇总卡片
             item {
-                EnhancedSummaryCards(
+                SummaryCards(
                     income = uiState.totalIncome,
                     expense = uiState.totalExpense,
                     balance = uiState.balance,
                     incomeChange = uiState.incomeChange,
                     expenseChange = uiState.expenseChange,
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
@@ -124,7 +135,7 @@ fun StatsScreen(
                 MonthlyMetricsCard(
                     transactionCount = uiState.transactionCount,
                     avgDailyExpense = uiState.avgDailyExpense,
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
@@ -133,7 +144,7 @@ fun StatsScreen(
                 ChartTypeToggle(
                     selectedType = selectedChartType,
                     onTypeSelected = { selectedChartType = it },
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
@@ -144,56 +155,55 @@ fun StatsScreen(
                     categoryRanking = uiState.categoryRanking,
                     totalExpense = if (uiState.showIncome) uiState.totalIncome else uiState.totalExpense,
                     dailyTrend = uiState.dailyTrend,
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
 
-            // 分类排行（带收入/支出切换）
+            // 分类排行
             item {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = AppDimens.PaddingL),
+                        .padding(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (uiState.showIncome) "收入分类排行" else "支出分类排行",
-                        style = AppTypography.TitleSmall,
-                        color = AppColors.TextPrimary
+                        text = if (uiState.showIncome) "📈 收入分类排行" else "📉 支出分类排行",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
                     )
-                    Text(
-                        text = if (uiState.showIncome) "查看支出" else "查看收入",
-                        style = AppTypography.LabelMedium,
-                        color = AppColors.Accent,
-                        modifier = Modifier.clickable { viewModel.toggleIncomeExpense() }
-                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(iOSAccent.copy(alpha = 0.1f))
+                            .clickable { viewModel.toggleIncomeExpense() }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = if (uiState.showIncome) "查看支出" else "查看收入",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = iOSAccent
+                        )
+                    }
                 }
             }
 
             if (uiState.categoryRanking.isEmpty()) {
                 item {
-                    AppCard(modifier = Modifier.padding(horizontal = AppDimens.PaddingL)) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(AppDimens.PaddingL),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "暂无数据",
-                                style = AppTypography.BodyMedium,
-                                color = AppColors.TextMuted
-                            )
-                        }
-                    }
+                    EmptyDataCard(
+                        message = "暂无数据",
+                        modifier = Modifier.padding(horizontal = 20.dp)
+                    )
                 }
             } else {
                 items(uiState.categoryRanking) { item ->
                     CategoryRankingItem(
                         item = item,
                         maxAmount = uiState.categoryRanking.firstOrNull()?.amount ?: 1.0,
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
             }
@@ -202,17 +212,18 @@ fun StatsScreen(
             if (uiState.accountChanges.isNotEmpty()) {
                 item {
                     Text(
-                        text = "账户变动",
-                        style = AppTypography.TitleSmall,
-                        color = AppColors.TextPrimary,
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        text = "🏦 账户变动",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E),
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
 
                 items(uiState.accountChanges) { account ->
                     AccountChangeItem(
                         account = account,
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
             }
@@ -221,10 +232,11 @@ fun StatsScreen(
             if (uiState.recentTransactions.isNotEmpty()) {
                 item {
                     Text(
-                        text = "最近交易",
-                        style = AppTypography.TitleSmall,
-                        color = AppColors.TextPrimary,
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        text = "📝 最近交易",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E),
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
 
@@ -232,13 +244,13 @@ fun StatsScreen(
                     RecentTransactionItem(
                         transaction = transaction,
                         onClick = { onNavigateToTransactionDetail(transaction.id) },
-                        modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                        modifier = Modifier.padding(horizontal = 20.dp)
                     )
                 }
             }
 
             item {
-                Spacer(modifier = Modifier.height(AppDimens.SpacingXXL))
+                Spacer(modifier = Modifier.height(100.dp))
             }
         }
     }
@@ -247,36 +259,49 @@ fun StatsScreen(
 /**
  * 时间筛选标签
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TimeFilterTabs(
     selectedPeriod: String,
     onPeriodSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val periods = listOf("周", "月", "季", "年", "全部", "自定义")
+    val periods = listOf("周", "月", "季", "年", "全部")
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(4.dp)
     ) {
-        periods.forEach { period ->
-            FilterChip(
-                selected = selectedPeriod == period,
-                onClick = { onPeriodSelected(period) },
-                label = {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            periods.forEach { period ->
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (selectedPeriod == period)
+                                iOSAccent
+                            else
+                                Color.Transparent
+                        )
+                        .clickable { onPeriodSelected(period) }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Text(
                         text = period,
-                        style = AppTypography.LabelSmall
+                        fontSize = 13.sp,
+                        fontWeight = if (selectedPeriod == period) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selectedPeriod == period) Color.White else Color(0xFF8E8E93)
                     )
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = AppColors.Accent,
-                    selectedLabelColor = Color.White,
-                    containerColor = AppColors.Card,
-                    labelColor = AppColors.TextSecondary
-                )
-            )
+                }
+            }
         }
     }
 }
@@ -289,30 +314,67 @@ private fun SummaryCards(
     income: Double,
     expense: Double,
     balance: Double,
+    incomeChange: Float,
+    expenseChange: Float,
     modifier: Modifier = Modifier
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // 收入卡片
         SummaryCard(
+            icon = "📈",
             label = "收入",
             amount = income,
-            color = AppColors.Success,
+            change = incomeChange,
+            gradientColors = listOf(Color(0xFF34C759), Color(0xFF30D158)),
             modifier = Modifier.weight(1f)
         )
+
+        // 支出卡片
         SummaryCard(
+            icon = "📉",
             label = "支出",
             amount = expense,
-            color = AppColors.Accent,
+            change = expenseChange,
+            gradientColors = listOf(Color(0xFFFF9500), Color(0xFFFF6B6B)),
+            positiveIsBad = true,
             modifier = Modifier.weight(1f)
         )
-        SummaryCard(
-            label = "结余",
-            amount = balance,
-            color = if (balance >= 0) AppColors.Info else AppColors.Accent,
-            modifier = Modifier.weight(1f)
-        )
+
+        // 结余卡片
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        colors = if (balance >= 0)
+                            listOf(Color(0xFF007AFF), Color(0xFF5AC8FA))
+                        else
+                            listOf(Color(0xFFFF3B30), Color(0xFFFF6B6B))
+                    )
+                )
+                .padding(12.dp)
+        ) {
+            Column {
+                Text(text = "💰", fontSize = 20.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "结余",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.8f)
+                )
+                Text(
+                    text = "¥${String.format("%.0f", balance)}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+        }
     }
 }
 
@@ -321,23 +383,109 @@ private fun SummaryCards(
  */
 @Composable
 private fun SummaryCard(
+    icon: String,
     label: String,
     amount: Double,
-    color: Color,
+    change: Float,
+    gradientColors: List<Color>,
+    positiveIsBad: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier) {
-        Text(
-            text = label,
-            style = AppTypography.Caption,
-            color = AppColors.TextMuted
-        )
-        Spacer(modifier = Modifier.height(AppDimens.SpacingXS))
-        Text(
-            text = "¥${String.format("%.2f", amount)}",
-            style = AppTypography.NumberSmall,
-            color = color
-        )
+    Box(
+        modifier = modifier
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(colors = gradientColors))
+            .padding(12.dp)
+    ) {
+        Column {
+            Text(text = icon, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.8f)
+            )
+            Text(
+                text = "¥${String.format("%.0f", amount)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val isPositive = change >= 0
+                val changeIcon = if (isPositive) "↑" else "↓"
+                Text(
+                    text = "$changeIcon${String.format("%.1f", kotlin.math.abs(change))}%",
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 月度指标卡片
+ */
+@Composable
+private fun MonthlyMetricsCard(
+    transactionCount: Int,
+    avgDailyExpense: Double,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "📝", fontSize = 24.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "交易笔数",
+                    fontSize = 12.sp,
+                    color = Color(0xFF8E8E93)
+                )
+                Text(
+                    text = "$transactionCount 笔",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .height(60.dp)
+                    .background(Color(0xFFE5E5EA))
+            )
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(text = "📅", fontSize = 24.sp)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "日均支出",
+                    fontSize = 12.sp,
+                    color = Color(0xFF8E8E93)
+                )
+                Text(
+                    text = "¥${String.format("%.2f", avgDailyExpense)}",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
+        }
     }
 }
 
@@ -354,26 +502,29 @@ private fun ChartTypeToggle(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.End
     ) {
-        IconButton(onClick = { onTypeSelected("pie") }) {
-            Icon(
-                imageVector = Icons.Filled.PieChart,
-                contentDescription = "饼图",
-                tint = if (selectedType == "pie") AppColors.Accent else AppColors.TextMuted
-            )
-        }
-        IconButton(onClick = { onTypeSelected("bar") }) {
-            Icon(
-                imageVector = Icons.Filled.BarChart,
-                contentDescription = "柱状图",
-                tint = if (selectedType == "bar") AppColors.Accent else AppColors.TextMuted
-            )
-        }
-        IconButton(onClick = { onTypeSelected("line") }) {
-            Icon(
-                imageVector = Icons.Filled.ShowChart,
-                contentDescription = "折线图",
-                tint = if (selectedType == "line") AppColors.Accent else AppColors.TextMuted
-            )
+        listOf(
+            "pie" to "🥧",
+            "bar" to "📊",
+            "line" to "📈"
+        ).forEach { (type, icon) ->
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        if (selectedType == type)
+                            iOSAccent.copy(alpha = 0.15f)
+                        else
+                            Color.Transparent
+                    )
+                    .clickable { onTypeSelected(type) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = icon,
+                    fontSize = 22.sp
+                )
+            }
         }
     }
 }
@@ -389,10 +540,16 @@ private fun ChartArea(
     dailyTrend: List<DailyTrendUiModel>,
     modifier: Modifier = Modifier
 ) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
         when (chartType) {
             "pie" -> {
-                // 饼图
                 if (categoryRanking.isNotEmpty()) {
                     val pieData = categoryRanking.take(6).map { item ->
                         PieChartData(
@@ -403,16 +560,14 @@ private fun ChartArea(
                     }
 
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(AppDimens.PaddingM),
+                        modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         DonutChart(
                             data = pieData,
                             centerText = "¥${String.format("%.0f", totalExpense)}",
-                            centerSubText = "总支出",
+                            centerSubText = "总计",
                             size = 160.dp,
                             strokeWidth = 20.dp
                         )
@@ -427,7 +582,6 @@ private fun ChartArea(
             }
 
             "bar" -> {
-                // 柱状图
                 if (categoryRanking.isNotEmpty()) {
                     val barData = categoryRanking.take(5).map { item ->
                         BarChartData(
@@ -439,7 +593,7 @@ private fun ChartArea(
 
                     BarChart(
                         data = barData,
-                        modifier = Modifier.padding(AppDimens.PaddingM),
+                        modifier = Modifier,
                         height = 180.dp
                     )
                 } else {
@@ -448,7 +602,6 @@ private fun ChartArea(
             }
 
             "line" -> {
-                // 折线图 - 使用真实趋势数据
                 if (dailyTrend.isNotEmpty()) {
                     val linePoints = dailyTrend.mapIndexed { index, daily ->
                         LineChartPoint(index.toFloat(), daily.amount, daily.label)
@@ -456,18 +609,14 @@ private fun ChartArea(
 
                     LineChart(
                         points = linePoints,
-                        modifier = Modifier.padding(AppDimens.PaddingM),
+                        modifier = Modifier,
                         height = 180.dp,
-                        lineColor = AppColors.Primary,
+                        lineColor = iOSAccent,
                         showGrid = true
                     )
                 } else {
                     EmptyChartPlaceholder("暂无趋势数据")
                 }
-            }
-
-            else -> {
-                EmptyChartPlaceholder("选择图表类型")
             }
         }
     }
@@ -484,10 +633,39 @@ private fun EmptyChartPlaceholder(text: String) {
             .height(200.dp),
         contentAlignment = Alignment.Center
     ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "📭", fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = text,
+                fontSize = 16.sp,
+                color = Color(0xFF8E8E93)
+            )
+        }
+    }
+}
+
+/**
+ * 空数据卡片
+ */
+@Composable
+private fun EmptyDataCard(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
         Text(
-            text = text,
-            style = AppTypography.BodyMedium,
-            color = AppColors.TextMuted
+            text = message,
+            fontSize = 14.sp,
+            color = Color(0xFF8E8E93)
         )
     }
 }
@@ -503,22 +681,29 @@ private fun CategoryRankingItem(
 ) {
     val progress = (item.amount / maxAmount).toFloat().coerceIn(0f, 1f)
 
-    AppCard(modifier = modifier.fillMaxWidth()) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(16.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(item.color.toColor()),
+                    .size(44.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(item.color.toColor().copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = item.icon, style = AppTypography.BodyLarge)
+                Text(text = item.icon, fontSize = 22.sp)
             }
 
-            Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Column(modifier = Modifier.weight(1f)) {
                 Row(
@@ -527,39 +712,184 @@ private fun CategoryRankingItem(
                 ) {
                     Text(
                         text = item.name,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
                     )
                     Text(
                         text = "¥${String.format("%.2f", item.amount)}",
-                        style = AppTypography.NumberSmall,
-                        color = AppColors.TextPrimary
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF1C1C1E)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(AppDimens.SpacingXS))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     LinearProgressIndicator(
-                        progress = progress,
+                        progress = { progress },
                         modifier = Modifier
                             .weight(1f)
-                            .height(6.dp)
-                            .clip(AppShapes.Full),
+                            .height(8.dp)
+                            .clip(RoundedCornerShape(4.dp)),
                         color = item.color.toColor(),
-                        trackColor = AppColors.Border
+                        trackColor = Color(0xFFE5E5EA),
                     )
-                    Spacer(modifier = Modifier.width(AppDimens.SpacingS))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "${String.format("%.1f", item.percent)}%",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * 账户变动项
+ */
+@Composable
+private fun AccountChangeItem(
+    account: AccountChangeUiModel,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(account.color.toColor().copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = account.icon, fontSize = 20.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = account.name,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    Text(
+                        text = "余额: ¥${String.format("%.2f", account.currentBalance)}",
+                        fontSize = 12.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
+            }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (account.periodChange >= 0) "📈" else "📉",
+                    fontSize = 14.sp
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${if (account.periodChange >= 0) "+" else ""}¥${String.format("%.2f", account.periodChange)}",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (account.periodChange >= 0) iOSGreen else iOSRed
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 最近交易项
+ */
+@Composable
+private fun RecentTransactionItem(
+    transaction: RecentTransactionUiModel,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(16.dp))
+            .background(iOSCardBackground)
+            .clickable(onClick = onClick)
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (transaction.type == TransactionType.EXPENSE)
+                                iOSOrange.copy(alpha = 0.15f)
+                            else
+                                iOSGreen.copy(alpha = 0.15f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = transaction.categoryIcon, fontSize = 20.sp)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = transaction.categoryName,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
+                    )
+                    Row {
+                        Text(
+                            text = transaction.date,
+                            fontSize = 12.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                        if (!transaction.note.isNullOrEmpty()) {
+                            Text(
+                                text = " · ${transaction.note}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF8E8E93),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
+            }
+
+            Text(
+                text = "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (transaction.type == TransactionType.EXPENSE) iOSOrange else iOSGreen
+            )
         }
     }
 }
@@ -577,276 +907,35 @@ data class CategoryRankingUiModel(
 )
 
 /**
- * 增强版汇总卡片（带环比变化）
+ * 每日趋势UI模型
  */
-@Composable
-private fun EnhancedSummaryCards(
-    income: Double,
-    expense: Double,
-    balance: Double,
-    incomeChange: Float,
-    expenseChange: Float,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
-    ) {
-        EnhancedSummaryCard(
-            label = "收入",
-            amount = income,
-            change = incomeChange,
-            color = AppColors.Success,
-            modifier = Modifier.weight(1f)
-        )
-        EnhancedSummaryCard(
-            label = "支出",
-            amount = expense,
-            change = expenseChange,
-            color = AppColors.Accent,
-            positiveIsBad = true,
-            modifier = Modifier.weight(1f)
-        )
-        SummaryCard(
-            label = "结余",
-            amount = balance,
-            color = if (balance >= 0) AppColors.Info else AppColors.Accent,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
+data class DailyTrendUiModel(
+    val date: Long,
+    val amount: Float,
+    val label: String
+)
 
 /**
- * 增强版汇总卡片项（带环比变化）
+ * 账户变动UI模型
  */
-@Composable
-private fun EnhancedSummaryCard(
-    label: String,
-    amount: Double,
-    change: Float,
-    color: Color,
-    positiveIsBad: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    AppCard(modifier = modifier) {
-        Text(
-            text = label,
-            style = AppTypography.Caption,
-            color = AppColors.TextMuted
-        )
-        Spacer(modifier = Modifier.height(AppDimens.SpacingXS))
-        Text(
-            text = "¥${String.format("%.2f", amount)}",
-            style = AppTypography.NumberSmall,
-            color = color
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            val isPositive = change >= 0
-            val changeColor = when {
-                positiveIsBad && isPositive -> AppColors.Accent
-                positiveIsBad && !isPositive -> AppColors.Success
-                isPositive -> AppColors.Success
-                else -> AppColors.Accent
-            }
-            Icon(
-                imageVector = if (isPositive) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
-                contentDescription = null,
-                modifier = Modifier.size(12.dp),
-                tint = changeColor
-            )
-            Spacer(modifier = Modifier.width(2.dp))
-            Text(
-                text = "${if (isPositive) "+" else ""}${String.format("%.1f", change)}%",
-                style = AppTypography.Caption,
-                color = changeColor
-            )
-        }
-    }
-}
+data class AccountChangeUiModel(
+    val id: Long,
+    val name: String,
+    val icon: String,
+    val color: String,
+    val currentBalance: Double,
+    val periodChange: Double
+)
 
 /**
- * 月度指标卡片
+ * 最近交易UI模型
  */
-@Composable
-private fun MonthlyMetricsCard(
-    transactionCount: Int,
-    avgDailyExpense: Double,
-    modifier: Modifier = Modifier
-) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            MetricItem(
-                label = "交易笔数",
-                value = "$transactionCount 笔"
-            )
-            Box(
-                modifier = Modifier
-                    .width(1.dp)
-                    .height(40.dp)
-                    .background(AppColors.Border)
-            )
-            MetricItem(
-                label = "日均支出",
-                value = "¥${String.format("%.2f", avgDailyExpense)}"
-            )
-        }
-    }
-}
-
-/**
- * 指标项
- */
-@Composable
-private fun MetricItem(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = label,
-            style = AppTypography.Caption,
-            color = AppColors.TextMuted
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = value,
-            style = AppTypography.BodyMedium,
-            color = AppColors.TextPrimary
-        )
-    }
-}
-
-/**
- * 账户变动项
- */
-@Composable
-private fun AccountChangeItem(
-    account: AccountChangeUiModel,
-    modifier: Modifier = Modifier
-) {
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(account.color.toColor()),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = account.icon, style = AppTypography.BodyMedium)
-                }
-                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
-                Column {
-                    Text(
-                        text = account.name,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
-                    )
-                    Text(
-                        text = "余额: ¥${String.format("%.2f", account.currentBalance)}",
-                        style = AppTypography.Caption,
-                        color = AppColors.TextMuted
-                    )
-                }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = if (account.periodChange >= 0) Icons.Filled.ArrowUpward else Icons.Filled.ArrowDownward,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = if (account.periodChange >= 0) AppColors.Success else AppColors.Accent
-                )
-                Text(
-                    text = "${if (account.periodChange >= 0) "+" else ""}¥${String.format("%.2f", account.periodChange)}",
-                    style = AppTypography.NumberSmall,
-                    color = if (account.periodChange >= 0) AppColors.Success else AppColors.Accent
-                )
-            }
-        }
-    }
-}
-
-/**
- * 最近交易项
- */
-@Composable
-private fun RecentTransactionItem(
-    transaction: RecentTransactionUiModel,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    AppCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(
-                            if (transaction.type == TransactionType.EXPENSE)
-                                AppColors.Accent.copy(alpha = 0.1f)
-                            else
-                                AppColors.Success.copy(alpha = 0.1f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = transaction.categoryIcon, style = AppTypography.BodyMedium)
-                }
-                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = transaction.categoryName,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
-                    )
-                    Row {
-                        Text(
-                            text = transaction.date,
-                            style = AppTypography.Caption,
-                            color = AppColors.TextMuted
-                        )
-                        if (!transaction.note.isNullOrEmpty()) {
-                            Text(
-                                text = " · ${transaction.note}",
-                                style = AppTypography.Caption,
-                                color = AppColors.TextMuted,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            }
-
-            Text(
-                text = "${if (transaction.type == TransactionType.EXPENSE) "-" else "+"}¥${String.format("%.2f", transaction.amount)}",
-                style = AppTypography.NumberSmall,
-                color = if (transaction.type == TransactionType.EXPENSE) AppColors.Accent else AppColors.Success
-            )
-        }
-    }
-}
+data class RecentTransactionUiModel(
+    val id: Long,
+    val categoryName: String,
+    val categoryIcon: String,
+    val amount: Double,
+    val type: TransactionType,
+    val date: String,
+    val note: String?
+)
