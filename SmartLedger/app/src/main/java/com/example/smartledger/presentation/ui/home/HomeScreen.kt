@@ -1,5 +1,8 @@
 package com.example.smartledger.presentation.ui.home
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -18,44 +22,41 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.outlined.SmartToy
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.smartledger.presentation.ui.components.AppCard
-import com.example.smartledger.presentation.ui.components.AppCardSmall
-import com.example.smartledger.presentation.ui.components.GradientCard
-import com.example.smartledger.presentation.ui.components.NoTransactionsState
 import com.example.smartledger.utils.toColor
-import com.example.smartledger.presentation.ui.theme.AppColors
-import com.example.smartledger.presentation.ui.theme.AppDimens
-import com.example.smartledger.presentation.ui.theme.AppShapes
-import com.example.smartledger.presentation.ui.theme.AppTypography
 
 /**
- * 首页
+ * iOS风格首页
  */
 @Composable
 fun HomeScreen(
@@ -68,91 +69,81 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
+    // iOS风格背景色
+    val backgroundColor = Color(0xFFF2F2F7)
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(AppColors.Background),
-        verticalArrangement = Arrangement.spacedBy(AppDimens.SpacingL)
+            .background(backgroundColor),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // 顶部标题栏
+        // 顶部问候区域
         item {
-            HomeTopBar(
+            HomeHeader(
                 currentMonth = uiState.currentMonth,
-                onNotificationClick = { /* TODO */ }
+                onNotificationClick = { }
             )
         }
 
-        // 资产卡片
+        // 总资产卡片
         item {
-            AssetCard(
+            TotalAssetCard(
                 totalAssets = uiState.totalAssets,
                 assetsChange = uiState.assetsChange,
                 assetsChangePercent = uiState.assetsChangePercent,
                 onClick = onNavigateToAssets,
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
 
-        // 快捷操作
+        // 快捷操作按钮
         item {
-            QuickActions(
+            QuickActionButtons(
                 onExpenseClick = onNavigateToRecord,
                 onIncomeClick = onNavigateToRecord,
                 onTransferClick = onNavigateToRecord,
                 onAiClick = onNavigateToAiChat,
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
 
-        // 预算进度
+        // 预算进度卡片
         item {
-            BudgetProgressCard(
+            BudgetCard(
                 budgetTotal = uiState.budgetTotal,
                 budgetUsed = uiState.budgetUsed,
                 dailyAvailable = uiState.dailyAvailable,
-                modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                modifier = Modifier.padding(horizontal = 20.dp)
             )
         }
 
         // 月度概览
         item {
-            MonthlyOverviewSection(
+            MonthOverview(
                 income = uiState.monthlyIncome,
                 expense = uiState.monthlyExpense,
                 investmentReturn = uiState.monthlyInvestmentReturn,
-                modifier = Modifier.padding(start = AppDimens.PaddingL)
+                modifier = Modifier.padding(start = 20.dp)
             )
         }
 
         // 近期账目标题
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = AppDimens.PaddingL),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "近期账目",
-                    style = AppTypography.TitleSmall,
-                    color = AppColors.TextPrimary
-                )
-                Text(
-                    text = "全部",
-                    style = AppTypography.LabelMedium,
-                    color = AppColors.Accent,
-                    modifier = Modifier.clickable { onNavigateToTransactionList() }
-                )
-            }
+            SectionHeader(
+                title = "近期账目",
+                actionText = "全部",
+                onActionClick = onNavigateToTransactionList,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
         }
 
-        // 近期交易列表
+        // 交易列表
         if (uiState.recentTransactions.isEmpty()) {
             item {
-                NoTransactionsState(
-                    onAddTransaction = onNavigateToRecord,
-                    modifier = Modifier.padding(AppDimens.PaddingXXL)
+                EmptyTransactionCard(
+                    onAddClick = onNavigateToRecord,
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
         } else {
@@ -160,128 +151,159 @@ fun HomeScreen(
                 items = uiState.recentTransactions,
                 key = { it.id }
             ) { transaction ->
-                TransactionItem(
+                TransactionListItem(
                     transaction = transaction,
                     onClick = { onNavigateToTransactionDetail(transaction.id) },
-                    modifier = Modifier.padding(horizontal = AppDimens.PaddingL)
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
         }
 
         // 底部间距
         item {
-            Spacer(modifier = Modifier.height(AppDimens.SpacingXXL))
+            Spacer(modifier = Modifier.height(100.dp))
         }
     }
 }
 
 /**
- * 首页顶部栏
+ * 首页顶部区域 - iOS风格
  */
 @Composable
-private fun HomeTopBar(
+private fun HomeHeader(
     currentMonth: String,
     onNotificationClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(
-                start = AppDimens.PaddingL,
-                end = AppDimens.PaddingL,
-                top = AppDimens.PaddingXL,
-                bottom = AppDimens.PaddingM
-            ),
+            .padding(start = 20.dp, end = 12.dp, top = 60.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
             Text(
                 text = currentMonth,
-                style = AppTypography.TitleLarge,
-                color = AppColors.TextPrimary
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1C1C1E)
             )
         }
 
-        IconButton(onClick = onNotificationClick) {
+        IconButton(
+            onClick = onNotificationClick,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+        ) {
             Icon(
-                imageVector = Icons.Filled.Notifications,
+                imageVector = Icons.Outlined.Notifications,
                 contentDescription = "通知",
-                tint = AppColors.TextPrimary
+                tint = Color(0xFF8E8E93),
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
 /**
- * 资产卡片
+ * 总资产卡片 - iOS风格渐变
  */
 @Composable
-private fun AssetCard(
+private fun TotalAssetCard(
     totalAssets: Double,
     assetsChange: Double,
     assetsChangePercent: Float,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    GradientCard(
-        modifier = modifier.fillMaxWidth(),
-        gradientColors = AppColors.GradientAssetCard,
-        onClick = onClick
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 20.dp,
+                shape = RoundedCornerShape(24.dp),
+                ambientColor = Color(0xFF1A1A2E).copy(alpha = 0.3f),
+                spotColor = Color(0xFF1A1A2E).copy(alpha = 0.3f)
+            )
+            .clickable { onClick() },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0xFF2D2D44),
+                            Color(0xFF1A1A2E),
+                            Color(0xFF16213E)
+                        )
+                    )
+                )
+                .padding(24.dp)
         ) {
             Column {
-                Text(
-                    text = "总资产",
-                    style = AppTypography.BodySmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Text(
+                        text = "总资产",
+                        fontSize = 14.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = Color.White.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Text(
                     text = "¥${formatAmount(totalAssets)}",
-                    style = AppTypography.NumberLarge,
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     val isPositive = assetsChange >= 0
-                    Icon(
-                        imageVector = if (isPositive) Icons.Filled.TrendingUp else Icons.Filled.TrendingDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = if (isPositive) AppColors.Success else AppColors.Accent
-                    )
+                    val changeIcon = if (isPositive) "📈" else "📉"
+                    val changeColor = if (isPositive) Color(0xFF00D9A5) else Color(0xFFE94560)
+
+                    Text(text = changeIcon, fontSize = 14.sp)
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${if (isPositive) "+" else ""}${formatAmount(assetsChange)} (${String.format("%.1f", assetsChangePercent)}%)",
-                        style = AppTypography.LabelSmall,
-                        color = if (isPositive) AppColors.Success else AppColors.Accent
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = changeColor
                     )
                     Text(
                         text = " 本月",
-                        style = AppTypography.LabelSmall,
+                        fontSize = 14.sp,
                         color = Color.White.copy(alpha = 0.5f)
                     )
                 }
             }
-            Icon(
-                imageVector = Icons.Filled.ArrowForward,
-                contentDescription = "查看详情",
-                tint = Color.White.copy(alpha = 0.5f)
-            )
         }
     }
 }
 
 /**
- * 快捷操作按钮组
+ * 快捷操作按钮组 - 卡通风格
  */
 @Composable
-private fun QuickActions(
+private fun QuickActionButtons(
     onExpenseClick: () -> Unit,
     onIncomeClick: () -> Unit,
     onTransferClick: () -> Unit,
@@ -292,159 +314,212 @@ private fun QuickActions(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        QuickActionButton(
-            icon = Icons.Filled.TrendingDown,
+        QuickActionItem(
+            icon = "📉",
             label = "支出",
-            backgroundColor = AppColors.AccentLight,
-            iconColor = AppColors.Accent,
+            backgroundColor = Color(0xFFFFF0F3),
             onClick = onExpenseClick
         )
-        QuickActionButton(
-            icon = Icons.Filled.TrendingUp,
+        QuickActionItem(
+            icon = "📈",
             label = "收入",
-            backgroundColor = AppColors.SuccessLight,
-            iconColor = AppColors.Success,
+            backgroundColor = Color(0xFFE6FFF7),
             onClick = onIncomeClick
         )
-        QuickActionButton(
-            icon = Icons.Filled.SwapHoriz,
+        QuickActionItem(
+            icon = "🔄",
             label = "转账",
-            backgroundColor = AppColors.InfoLight,
-            iconColor = AppColors.Info,
+            backgroundColor = Color(0xFFEEF0FF),
             onClick = onTransferClick
         )
-        QuickActionButton(
-            icon = Icons.Outlined.SmartToy,
+        QuickActionItem(
+            icon = "🤖",
             label = "AI记账",
-            backgroundColor = AppColors.WarningLight,
-            iconColor = AppColors.Warning,
+            backgroundColor = Color(0xFFFFF8E6),
             onClick = onAiClick
         )
     }
 }
 
 /**
- * 快捷操作按钮
+ * 单个快捷操作按钮
  */
 @Composable
-private fun QuickActionButton(
-    icon: ImageVector,
+private fun QuickActionItem(
+    icon: String,
     label: String,
     backgroundColor: Color,
-    iconColor: Color,
     onClick: () -> Unit
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+        modifier = Modifier.clickable { onClick() }
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
+                .size(60.dp)
+                .shadow(
+                    elevation = 8.dp,
+                    shape = RoundedCornerShape(20.dp),
+                    ambientColor = backgroundColor.copy(alpha = 0.5f)
+                )
+                .clip(RoundedCornerShape(20.dp))
                 .background(backgroundColor),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = iconColor,
-                modifier = Modifier.size(24.dp)
-            )
+            Text(text = icon, fontSize = 28.sp)
         }
-        Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+        Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = label,
-            style = AppTypography.LabelSmall,
-            color = AppColors.TextSecondary
+            fontSize = 12.sp,
+            color = Color(0xFF8E8E93),
+            fontWeight = FontWeight.Medium
         )
     }
 }
 
 /**
- * 预算进度卡片
+ * 预算进度卡片 - 带圆环进度
  */
 @Composable
-private fun BudgetProgressCard(
+private fun BudgetCard(
     budgetTotal: Double,
     budgetUsed: Double,
     dailyAvailable: Double,
     modifier: Modifier = Modifier
 ) {
     val progress = if (budgetTotal > 0) (budgetUsed / budgetTotal).toFloat().coerceIn(0f, 1f) else 0f
-    val progressColor = when {
-        progress < 0.6f -> AppColors.Success
-        progress < 0.8f -> AppColors.Warning
-        else -> AppColors.Accent
-    }
     val remaining = budgetTotal - budgetUsed
 
-    AppCard(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "预算进度",
-            style = AppTypography.TitleSmall,
-            color = AppColors.TextPrimary
-        )
+    // 动画进度
+    var animatedProgress by remember { mutableStateOf(0f) }
+    val animatedValue by animateFloatAsState(
+        targetValue = animatedProgress,
+        animationSpec = tween(durationMillis = 1000),
+        label = "progress"
+    )
+    LaunchedEffect(progress) {
+        animatedProgress = progress
+    }
 
-        Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+    val progressColor = when {
+        progress < 0.6f -> Color(0xFF00D9A5)
+        progress < 0.8f -> Color(0xFFFFB020)
+        else -> Color(0xFFE94560)
+    }
 
-        LinearProgressIndicator(
-            progress = progress,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(AppDimens.ProgressBarHeight)
-                .clip(AppShapes.Full),
-            color = progressColor,
-            trackColor = AppColors.Border
-        )
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Text(
+                text = "预算进度",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
+            )
 
-        Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column {
-                Text(
-                    text = "已用",
-                    style = AppTypography.Caption,
-                    color = AppColors.TextMuted
-                )
-                Text(
-                    text = "¥${formatAmount(budgetUsed)}",
-                    style = AppTypography.NumberSmall,
-                    color = AppColors.TextPrimary
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "剩余",
-                    style = AppTypography.Caption,
-                    color = AppColors.TextMuted
-                )
-                Text(
-                    text = "¥${formatAmount(remaining)}",
-                    style = AppTypography.NumberSmall,
-                    color = if (remaining >= 0) AppColors.Success else AppColors.Accent
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 圆环进度指示器
+                Box(
+                    modifier = Modifier.size(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.size(80.dp)) {
+                        val strokeWidth = 10.dp.toPx()
+                        val radius = (size.minDimension - strokeWidth) / 2
+                        val center = Offset(size.width / 2, size.height / 2)
+
+                        // 背景圆环
+                        drawCircle(
+                            color = Color(0xFFF2F2F7),
+                            radius = radius,
+                            center = center,
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+
+                        // 进度圆环
+                        drawArc(
+                            color = progressColor,
+                            startAngle = -90f,
+                            sweepAngle = animatedValue * 360f,
+                            useCenter = false,
+                            topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                            size = Size(size.width - strokeWidth, size.height - strokeWidth),
+                            style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+                        )
+                    }
+
+                    Text(
+                        text = "${(animatedValue * 100).toInt()}%",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = progressColor
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(20.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "已用",
+                                fontSize = 12.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                            Text(
+                                text = "¥${formatAmount(budgetUsed)}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E)
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "剩余",
+                                fontSize = 12.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                            Text(
+                                text = "¥${formatAmount(remaining)}",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (remaining >= 0) Color(0xFF00D9A5) else Color(0xFFE94560)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "💰 日均可用 ¥${formatAmount(dailyAvailable)}",
+                        fontSize = 13.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
             }
         }
-
-        Spacer(modifier = Modifier.height(AppDimens.SpacingS))
-
-        Text(
-            text = "日均可用 ¥${formatAmount(dailyAvailable)}",
-            style = AppTypography.Caption,
-            color = AppColors.TextMuted
-        )
     }
 }
 
 /**
- * 月度概览区域
+ * 月度概览
  */
 @Composable
-private fun MonthlyOverviewSection(
+private fun MonthOverview(
     income: Double,
     expense: Double,
     investmentReturn: Double,
@@ -453,65 +528,72 @@ private fun MonthlyOverviewSection(
     Column(modifier = modifier) {
         Text(
             text = "月度概览",
-            style = AppTypography.TitleSmall,
-            color = AppColors.TextPrimary,
-            modifier = Modifier.padding(bottom = AppDimens.SpacingM)
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF1C1C1E),
+            modifier = Modifier.padding(bottom = 12.dp)
         )
 
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            MonthlyOverviewCard(
+            MonthOverviewItem(
+                icon = "💵",
                 title = "收入",
                 amount = income,
-                backgroundColor = AppColors.SuccessLight,
-                amountColor = AppColors.Success
+                backgroundColor = Color(0xFFE6FFF7),
+                amountColor = Color(0xFF00D9A5)
             )
-            MonthlyOverviewCard(
+            MonthOverviewItem(
+                icon = "💸",
                 title = "支出",
                 amount = expense,
-                backgroundColor = AppColors.AccentLight,
-                amountColor = AppColors.Accent
+                backgroundColor = Color(0xFFFFF0F3),
+                amountColor = Color(0xFFE94560)
             )
-            MonthlyOverviewCard(
+            MonthOverviewItem(
+                icon = "📊",
                 title = "投资收益",
                 amount = investmentReturn,
-                backgroundColor = AppColors.InfoLight,
-                amountColor = AppColors.Info
+                backgroundColor = Color(0xFFEEF0FF),
+                amountColor = Color(0xFF667EEA)
             )
-            Spacer(modifier = Modifier.width(AppDimens.PaddingL))
+            Spacer(modifier = Modifier.width(20.dp))
         }
     }
 }
 
 /**
- * 月度概览卡片
+ * 月度概览项
  */
 @Composable
-private fun MonthlyOverviewCard(
+private fun MonthOverviewItem(
+    icon: String,
     title: String,
     amount: Double,
     backgroundColor: Color,
     amountColor: Color
 ) {
-    Box(
-        modifier = Modifier
-            .width(140.dp)
-            .clip(AppShapes.Medium)
-            .background(backgroundColor)
-            .padding(AppDimens.PaddingL)
+    Card(
+        modifier = Modifier.width(130.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        Column {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = icon, fontSize = 24.sp)
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = title,
-                style = AppTypography.LabelMedium,
-                color = AppColors.TextSecondary
+                fontSize = 13.sp,
+                color = Color(0xFF8E8E93)
             )
-            Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "¥${formatAmount(amount)}",
-                style = AppTypography.NumberMedium,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
                 color = amountColor
             )
         }
@@ -519,48 +601,131 @@ private fun MonthlyOverviewCard(
 }
 
 /**
- * 交易项
+ * 区域标题
  */
 @Composable
-private fun TransactionItem(
+private fun SectionHeader(
+    title: String,
+    actionText: String,
+    onActionClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF1C1C1E)
+        )
+        Text(
+            text = actionText,
+            fontSize = 15.sp,
+            color = Color(0xFFE94560),
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.clickable { onActionClick() }
+        )
+    }
+}
+
+/**
+ * 空交易状态卡片
+ */
+@Composable
+private fun EmptyTransactionCard(
+    onAddClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onAddClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = "📝", fontSize = 48.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "还没有记录",
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF1C1C1E)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "点击这里开始记账吧",
+                fontSize = 14.sp,
+                color = Color(0xFF8E8E93)
+            )
+        }
+    }
+}
+
+/**
+ * 交易列表项 - iOS风格
+ */
+@Composable
+private fun TransactionListItem(
     transaction: TransactionUiModel,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    AppCardSmall(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // 分类图标
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(transaction.categoryColor.toColor()),
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(transaction.categoryColor.toColor().copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = transaction.categoryIcon,
-                        style = AppTypography.BodyLarge
+                        fontSize = 24.sp
                     )
                 }
-                Spacer(modifier = Modifier.width(AppDimens.SpacingM))
+
+                Spacer(modifier = Modifier.width(14.dp))
+
                 Column {
                     Text(
                         text = transaction.categoryName,
-                        style = AppTypography.BodyMedium,
-                        color = AppColors.TextPrimary
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF1C1C1E)
                     )
                     if (transaction.note.isNotEmpty()) {
                         Text(
                             text = transaction.note,
-                            style = AppTypography.Caption,
-                            color = AppColors.TextMuted
+                            fontSize = 13.sp,
+                            color = Color(0xFF8E8E93),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -568,8 +733,9 @@ private fun TransactionItem(
 
             Text(
                 text = "${if (transaction.isExpense) "-" else "+"}¥${formatAmount(transaction.amount)}",
-                style = AppTypography.NumberSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = if (transaction.isExpense) AppColors.Accent else AppColors.Success
+                fontSize = 17.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = if (transaction.isExpense) Color(0xFFE94560) else Color(0xFF00D9A5)
             )
         }
     }
@@ -579,10 +745,11 @@ private fun TransactionItem(
  * 格式化金额
  */
 private fun formatAmount(amount: Double): String {
-    return if (amount >= 10000) {
-        String.format("%.2f万", amount / 10000)
+    val absAmount = kotlin.math.abs(amount)
+    return if (absAmount >= 10000) {
+        String.format("%.2f万", absAmount / 10000)
     } else {
-        String.format("%.2f", amount)
+        String.format("%.2f", absAmount)
     }
 }
 
