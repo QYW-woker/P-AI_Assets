@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.smartledger.data.local.entity.AccountEntity
 import com.example.smartledger.data.local.entity.AccountType
+import com.example.smartledger.data.local.entity.BankType
 import com.example.smartledger.domain.repository.AccountRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,17 +36,29 @@ class AccountManagementViewModel @Inject constructor(
 
                 val accounts = accountRepository.getAllActiveAccounts().first()
 
-                // 按类型分组
+                // 按类型分组 - 资产账户
                 val assetAccounts = accounts.filter {
                     it.type in listOf(
                         AccountType.CASH,
                         AccountType.BANK,
                         AccountType.ALIPAY,
-                        AccountType.WECHAT,
-                        AccountType.CREDIT_CARD
+                        AccountType.WECHAT
                     )
                 }.map { it.toUiModel() }
 
+                // 信贷账户
+                val creditAccounts = accounts.filter {
+                    it.type in listOf(
+                        AccountType.CREDIT_CARD,
+                        AccountType.HUABEI,
+                        AccountType.BAITIAO,
+                        AccountType.LOAN,
+                        AccountType.MORTGAGE,
+                        AccountType.CAR_LOAN
+                    )
+                }.map { it.toUiModel() }
+
+                // 投资账户
                 val investmentAccounts = accounts.filter {
                     it.type in listOf(
                         AccountType.INVESTMENT_STOCK,
@@ -55,12 +68,15 @@ class AccountManagementViewModel @Inject constructor(
                 }.map { it.toUiModel() }
 
                 val totalAssets = assetAccounts.sumOf { it.balance }
+                val totalCredit = creditAccounts.sumOf { it.balance }  // 负数表示欠款
                 val totalInvestments = investmentAccounts.sumOf { it.balance }
 
                 _uiState.value = AccountManagementUiState(
                     assetAccounts = assetAccounts,
+                    creditAccounts = creditAccounts,
                     investmentAccounts = investmentAccounts,
                     totalAssets = totalAssets,
+                    totalCredit = totalCredit,
                     totalInvestments = totalInvestments,
                     isLoading = false
                 )
@@ -79,7 +95,10 @@ class AccountManagementViewModel @Inject constructor(
         icon: String,
         color: String,
         balance: Double,
-        note: String
+        note: String,
+        bankType: BankType? = null,
+        cardNumber: String = "",
+        creditLimit: Double = 0.0
     ) {
         viewModelScope.launch {
             val account = AccountEntity(
@@ -88,8 +107,11 @@ class AccountManagementViewModel @Inject constructor(
                 icon = icon,
                 color = color,
                 balance = balance,
-                initialBalance = balance,
-                note = note
+                initialBalance = if (creditLimit > 0) creditLimit else balance,
+                note = note,
+                bankType = bankType,
+                cardNumber = cardNumber,
+                creditLimit = creditLimit
             )
             accountRepository.insertAccount(account)
             loadAccounts()
@@ -153,10 +175,15 @@ class AccountManagementViewModel @Inject constructor(
 
     private fun AccountType.toDisplayName(): String = when (this) {
         AccountType.CASH -> "现金"
-        AccountType.BANK -> "银行卡"
+        AccountType.BANK -> "储蓄卡"
         AccountType.ALIPAY -> "支付宝"
         AccountType.WECHAT -> "微信"
         AccountType.CREDIT_CARD -> "信用卡"
+        AccountType.HUABEI -> "花呗"
+        AccountType.BAITIAO -> "白条"
+        AccountType.LOAN -> "贷款"
+        AccountType.MORTGAGE -> "房贷"
+        AccountType.CAR_LOAN -> "车贷"
         AccountType.INVESTMENT_STOCK -> "股票"
         AccountType.INVESTMENT_FUND -> "基金"
         AccountType.INVESTMENT_DEPOSIT -> "定期存款"
@@ -168,8 +195,10 @@ class AccountManagementViewModel @Inject constructor(
  */
 data class AccountManagementUiState(
     val assetAccounts: List<AccountUiModel> = emptyList(),
+    val creditAccounts: List<AccountUiModel> = emptyList(),
     val investmentAccounts: List<AccountUiModel> = emptyList(),
     val totalAssets: Double = 0.0,
+    val totalCredit: Double = 0.0,
     val totalInvestments: Double = 0.0,
     val isLoading: Boolean = true,
     val errorMessage: String? = null

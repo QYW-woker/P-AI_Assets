@@ -77,7 +77,7 @@ fun AccountManagementScreen(
             }
         }
     ) { paddingValues ->
-        if (uiState.assetAccounts.isEmpty() && uiState.investmentAccounts.isEmpty()) {
+        if (uiState.assetAccounts.isEmpty() && uiState.creditAccounts.isEmpty() && uiState.investmentAccounts.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -134,6 +134,28 @@ fun AccountManagementScreen(
                     }
                 }
 
+                // 信贷账户汇总
+                if (uiState.creditAccounts.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+                        SummaryCard(
+                            title = "信贷账户",
+                            total = uiState.totalCredit,
+                            icon = "💳",
+                            isDebt = true
+                        )
+                    }
+
+                    items(uiState.creditAccounts) { account ->
+                        AccountItem(
+                            account = account,
+                            onEdit = { editingAccount = account },
+                            onDelete = { viewModel.deleteAccount(account.id) },
+                            onUpdateBalance = { showBalanceDialog = account }
+                        )
+                    }
+                }
+
                 // 投资账户汇总
                 if (uiState.investmentAccounts.isNotEmpty()) {
                     item {
@@ -166,8 +188,8 @@ fun AccountManagementScreen(
     if (showAddDialog) {
         AddAccountDialog(
             onDismiss = { showAddDialog = false },
-            onConfirm = { name, type, icon, color, balance, note ->
-                viewModel.addAccount(name, type, icon, color, balance, note)
+            onConfirm = { name, type, icon, color, balance, note, bankType, cardNumber, creditLimit ->
+                viewModel.addAccount(name, type, icon, color, balance, note, bankType, cardNumber, creditLimit)
                 showAddDialog = false
             }
         )
@@ -203,7 +225,8 @@ fun AccountManagementScreen(
 private fun SummaryCard(
     title: String,
     total: Double,
-    icon: String
+    icon: String,
+    isDebt: Boolean = false
 ) {
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -224,9 +247,9 @@ private fun SummaryCard(
                 )
             }
             Text(
-                text = "¥${String.format("%.2f", total)}",
+                text = if (isDebt && total < 0) "¥${String.format("%.2f", -total)}" else "¥${String.format("%.2f", total)}",
                 style = AppTypography.NumberMedium,
-                color = AppColors.Success
+                color = if (isDebt) AppColors.Accent else AppColors.Success
             )
         }
     }
