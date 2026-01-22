@@ -17,16 +17,25 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -69,6 +78,20 @@ fun StatsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedChartType by remember { mutableStateOf("pie") }
+    var showDateRangePicker by remember { mutableStateOf(false) }
+
+    // 日期范围选择对话框
+    if (showDateRangePicker) {
+        DateRangePickerDialog(
+            initialStartDate = uiState.customStartDate,
+            initialEndDate = uiState.customEndDate,
+            onDismiss = { showDateRangePicker = false },
+            onConfirm = { startDate, endDate ->
+                viewModel.setCustomDateRange(startDate, endDate)
+                showDateRangePicker = false
+            }
+        )
+    }
 
     Scaffold(
         containerColor = iOSBackground
@@ -100,7 +123,9 @@ fun StatsScreen(
             item {
                 TimeFilterTabs(
                     selectedPeriod = uiState.selectedPeriod,
+                    isCustomDateRange = uiState.isCustomDateRange,
                     onPeriodSelected = { viewModel.setPeriod(it) },
+                    onCustomDateClick = { showDateRangePicker = true },
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
             }
@@ -262,45 +287,86 @@ fun StatsScreen(
 @Composable
 private fun TimeFilterTabs(
     selectedPeriod: String,
+    isCustomDateRange: Boolean,
     onPeriodSelected: (String) -> Unit,
+    onCustomDateClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val periods = listOf("周", "月", "季", "年", "全部")
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(16.dp))
-            .clip(RoundedCornerShape(16.dp))
-            .background(iOSCardBackground)
-            .padding(4.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
+    Column(modifier = modifier) {
+        // 预设时间段选择
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(16.dp))
+                .background(iOSCardBackground)
+                .padding(4.dp)
         ) {
-            periods.forEach { period ->
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (selectedPeriod == period)
-                                iOSAccent
-                            else
-                                Color.Transparent
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                periods.forEach { period ->
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(
+                                if (selectedPeriod == period && !isCustomDateRange)
+                                    iOSAccent
+                                else
+                                    Color.Transparent
+                            )
+                            .clickable { onPeriodSelected(period) }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = period,
+                            fontSize = 13.sp,
+                            fontWeight = if (selectedPeriod == period && !isCustomDateRange) FontWeight.SemiBold else FontWeight.Normal,
+                            color = if (selectedPeriod == period && !isCustomDateRange) Color.White else Color(0xFF8E8E93)
                         )
-                        .clickable { onPeriodSelected(period) }
-                        .padding(vertical = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = period,
-                        fontSize = 13.sp,
-                        fontWeight = if (selectedPeriod == period) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (selectedPeriod == period) Color.White else Color(0xFF8E8E93)
-                    )
+                    }
                 }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 自定义日期选择按钮
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(4.dp, RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(12.dp))
+                .background(
+                    if (isCustomDateRange)
+                        iOSPurple
+                    else
+                        iOSCardBackground
+                )
+                .clickable { onCustomDateClick() }
+                .padding(vertical = 12.dp, horizontal = 16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "📅",
+                    fontSize = 16.sp
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isCustomDateRange) "自定义: ${selectedPeriod}" else "自定义日期范围",
+                    fontSize = 14.sp,
+                    fontWeight = if (isCustomDateRange) FontWeight.SemiBold else FontWeight.Normal,
+                    color = if (isCustomDateRange) Color.White else Color(0xFF8E8E93)
+                )
             }
         }
     }
@@ -891,6 +957,220 @@ private fun RecentTransactionItem(
                 color = if (transaction.type == TransactionType.EXPENSE) iOSOrange else iOSGreen
             )
         }
+    }
+}
+
+/**
+ * 日期范围选择对话框
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateRangePickerDialog(
+    initialStartDate: Long?,
+    initialEndDate: Long?,
+    onDismiss: () -> Unit,
+    onConfirm: (startDate: Long, endDate: Long) -> Unit
+) {
+    var isSelectingStartDate by remember { mutableStateOf(true) }
+    var selectedStartDate by remember { mutableLongStateOf(initialStartDate ?: System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000) }
+    var selectedEndDate by remember { mutableLongStateOf(initialEndDate ?: System.currentTimeMillis()) }
+
+    val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Column {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(text = "📅", fontSize = 24.sp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "选择日期范围",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF1C1C1E)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 日期范围显示
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    // 开始日期
+                    DateSelectionButton(
+                        label = "开始日期",
+                        date = dateFormat.format(Date(selectedStartDate)),
+                        isSelected = isSelectingStartDate,
+                        onClick = { isSelectingStartDate = true }
+                    )
+
+                    Text(
+                        text = "→",
+                        fontSize = 20.sp,
+                        color = Color(0xFF8E8E93),
+                        modifier = Modifier.padding(horizontal = 8.dp)
+                    )
+
+                    // 结束日期
+                    DateSelectionButton(
+                        label = "结束日期",
+                        date = dateFormat.format(Date(selectedEndDate)),
+                        isSelected = !isSelectingStartDate,
+                        onClick = { isSelectingStartDate = false }
+                    )
+                }
+            }
+        },
+        text = {
+            Column {
+                // 快捷选择
+                Text(
+                    text = "⚡ 快捷选择",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    QuickDateRangeChip("最近7天") {
+                        selectedStartDate = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000
+                        selectedEndDate = System.currentTimeMillis()
+                    }
+                    QuickDateRangeChip("最近30天") {
+                        selectedStartDate = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
+                        selectedEndDate = System.currentTimeMillis()
+                    }
+                    QuickDateRangeChip("最近90天") {
+                        selectedStartDate = System.currentTimeMillis() - 90L * 24 * 60 * 60 * 1000
+                        selectedEndDate = System.currentTimeMillis()
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 日期选择器
+                val datePickerState = rememberDatePickerState(
+                    initialSelectedDateMillis = if (isSelectingStartDate) selectedStartDate else selectedEndDate
+                )
+
+                DatePicker(
+                    state = datePickerState,
+                    showModeToggle = false,
+                    modifier = Modifier.height(400.dp)
+                )
+
+                // 监听日期选择变化
+                datePickerState.selectedDateMillis?.let { selectedDate ->
+                    if (isSelectingStartDate) {
+                        if (selectedDate <= selectedEndDate) {
+                            selectedStartDate = selectedDate
+                        }
+                    } else {
+                        if (selectedDate >= selectedStartDate) {
+                            selectedEndDate = selectedDate
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    if (selectedStartDate <= selectedEndDate) {
+                        onConfirm(selectedStartDate, selectedEndDate)
+                    }
+                },
+                enabled = selectedStartDate <= selectedEndDate
+            ) {
+                Text(
+                    text = "✓ 确定",
+                    color = if (selectedStartDate <= selectedEndDate) iOSAccent else Color(0xFFC7C7CC),
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    "取消",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 16.sp
+                )
+            }
+        }
+    )
+}
+
+/**
+ * 日期选择按钮
+ */
+@Composable
+private fun DateSelectionButton(
+    label: String,
+    date: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isSelected) iOSAccent.copy(alpha = 0.1f)
+                else Color(0xFFF2F2F7)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = if (isSelected) iOSAccent else Color(0xFF8E8E93)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = date,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = if (isSelected) iOSAccent else Color(0xFF1C1C1E)
+        )
+    }
+}
+
+/**
+ * 快捷日期范围选择
+ */
+@Composable
+private fun QuickDateRangeChip(
+    label: String,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF2F2F7))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = iOSPurple
+        )
     }
 }
 
