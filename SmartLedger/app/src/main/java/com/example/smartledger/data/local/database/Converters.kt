@@ -3,6 +3,7 @@ package com.example.smartledger.data.local.database
 import androidx.room.TypeConverter
 import com.example.smartledger.data.local.entity.AccountType
 import com.example.smartledger.data.local.entity.BudgetPeriod
+import com.example.smartledger.data.local.entity.GoalTransactionType
 import com.example.smartledger.data.local.entity.HoldingType
 import com.example.smartledger.data.local.entity.RecurringFrequency
 import com.example.smartledger.data.local.entity.TransactionType
@@ -65,6 +66,17 @@ class Converters {
     @TypeConverter
     fun toHoldingType(value: String): HoldingType {
         return HoldingType.valueOf(value)
+    }
+
+    // GoalTransactionType转换
+    @TypeConverter
+    fun fromGoalTransactionType(type: GoalTransactionType): String {
+        return type.name
+    }
+
+    @TypeConverter
+    fun toGoalTransactionType(value: String): GoalTransactionType {
+        return GoalTransactionType.valueOf(value)
     }
 
     // List<String>转换（用于tags等字段）

@@ -35,12 +35,42 @@ class StatsViewModel @Inject constructor(
     private var showIncome = false // false = 支出, true = 收入
     private val dateFormat = SimpleDateFormat("MM月dd日", Locale.CHINESE)
 
+    // 自定义日期范围
+    private var customStartDate: Long? = null
+    private var customEndDate: Long? = null
+    private var isCustomDateRange = false
+
     init {
         loadStatsData()
     }
 
     fun setPeriod(period: String) {
         currentPeriod = period
+        isCustomDateRange = false
+        customStartDate = null
+        customEndDate = null
+        loadStatsData()
+    }
+
+    /**
+     * 设置自定义日期范围
+     */
+    fun setCustomDateRange(startDate: Long, endDate: Long) {
+        customStartDate = startDate
+        customEndDate = endDate
+        isCustomDateRange = true
+        currentPeriod = "自定义"
+        loadStatsData()
+    }
+
+    /**
+     * 清除自定义日期范围
+     */
+    fun clearCustomDateRange() {
+        isCustomDateRange = false
+        customStartDate = null
+        customEndDate = null
+        currentPeriod = "月"
         loadStatsData()
     }
 
@@ -173,7 +203,10 @@ class StatsViewModel @Inject constructor(
                     showIncome = showIncome,
                     selectedPeriod = currentPeriod,
                     periodLabel = getPeriodLabel(currentPeriod, startDate, endDate),
-                    isLoading = false
+                    isLoading = false,
+                    customStartDate = customStartDate,
+                    customEndDate = customEndDate,
+                    isCustomDateRange = isCustomDateRange
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -186,6 +219,7 @@ class StatsViewModel @Inject constructor(
 
     private fun getPeriodLabel(period: String, startDate: Long, endDate: Long): String {
         val sdf = SimpleDateFormat("yyyy年MM月", Locale.CHINESE)
+        val rangeSdf = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         return when (period) {
             "月" -> sdf.format(Date(startDate))
             "周" -> {
@@ -202,11 +236,20 @@ class StatsViewModel @Inject constructor(
                 val yearFormat = SimpleDateFormat("yyyy年", Locale.CHINESE)
                 yearFormat.format(Date(startDate))
             }
+            "自定义" -> {
+                "${rangeSdf.format(Date(startDate))} - ${rangeSdf.format(Date(endDate))}"
+            }
+            "全部" -> "全部数据"
             else -> period
         }
     }
 
     private fun getDateRange(period: String): Pair<Long, Long> {
+        // 如果是自定义日期范围，直接返回
+        if (isCustomDateRange && customStartDate != null && customEndDate != null) {
+            return Pair(customStartDate!!, customEndDate!!)
+        }
+
         val calendar = Calendar.getInstance()
         val endDate = calendar.timeInMillis
 
@@ -253,6 +296,7 @@ class StatsViewModel @Inject constructor(
                 calendar.set(Calendar.MILLISECOND, 0)
             }
             "自定义" -> {
+                // 默认最近30天
                 calendar.add(Calendar.DAY_OF_MONTH, -30)
                 calendar.set(Calendar.HOUR_OF_DAY, 0)
                 calendar.set(Calendar.MINUTE, 0)
@@ -360,7 +404,11 @@ data class StatsUiState(
     val selectedPeriod: String = "月",
     val periodLabel: String = "",
     val isLoading: Boolean = true,
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    // 自定义日期范围
+    val customStartDate: Long? = null,
+    val customEndDate: Long? = null,
+    val isCustomDateRange: Boolean = false
 )
 
 /**

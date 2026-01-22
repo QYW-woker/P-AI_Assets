@@ -8,6 +8,7 @@ import com.example.smartledger.data.local.dao.CategoryDao
 import com.example.smartledger.data.local.dao.AccountDao
 import com.example.smartledger.data.local.dao.BudgetDao
 import com.example.smartledger.data.local.dao.GoalDao
+import com.example.smartledger.data.local.dao.GoalTransactionDao
 import com.example.smartledger.data.local.dao.InvestmentHoldingDao
 import com.example.smartledger.data.local.dao.MonthlySnapshotDao
 import com.example.smartledger.data.local.dao.RecurringTransactionDao
@@ -85,6 +86,15 @@ object DatabaseModule {
     @Singleton
     fun provideGoalDao(database: AppDatabase): GoalDao {
         return database.goalDao()
+    }
+
+    /**
+     * 提供GoalTransactionDao
+     */
+    @Provides
+    @Singleton
+    fun provideGoalTransactionDao(database: AppDatabase): GoalTransactionDao {
+        return database.goalTransactionDao()
     }
 
     /**

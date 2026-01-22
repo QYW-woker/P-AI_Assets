@@ -355,9 +355,10 @@ fun DepositToGoalDialog(
     currentAmount: Double,
     targetAmount: Double,
     onDismiss: () -> Unit,
-    onConfirm: (amount: Double) -> Unit
+    onConfirm: (amount: Double, note: String) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
+    var noteText by remember { mutableStateOf("") }
     val remaining = targetAmount - currentAmount
 
     AlertDialog(
@@ -472,6 +473,33 @@ fun DepositToGoalDialog(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 备注
+                Text(
+                    text = "📝 备注（可选）",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text("例如：工资存入", color = Color(0xFFC7C7CC))
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSGreen,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
+                )
             }
         },
         confirmButton = {
@@ -479,7 +507,7 @@ fun DepositToGoalDialog(
                 onClick = {
                     val amount = amountText.toDoubleOrNull()
                     if (amount != null && amount > 0) {
-                        onConfirm(amount)
+                        onConfirm(amount, noteText)
                     }
                 },
                 enabled = amountText.toDoubleOrNull()?.let { it > 0 } == true
@@ -540,9 +568,10 @@ fun WithdrawFromGoalDialog(
     goalName: String,
     currentAmount: Double,
     onDismiss: () -> Unit,
-    onConfirm: (amount: Double) -> Unit
+    onConfirm: (amount: Double, note: String) -> Unit
 ) {
     var amountText by remember { mutableStateOf("") }
+    var noteText by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -635,6 +664,33 @@ fun WithdrawFromGoalDialog(
                     )
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 备注
+                Text(
+                    text = "📝 备注（可选）",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = noteText,
+                    onValueChange = { noteText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = {
+                        Text("例如：急用取出", color = Color(0xFFC7C7CC))
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = iOSOrange,
+                        unfocusedBorderColor = Color(0xFFE5E5EA)
+                    )
+                )
+
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // 提示
@@ -658,7 +714,7 @@ fun WithdrawFromGoalDialog(
                 onClick = {
                     val amount = amountText.toDoubleOrNull()
                     if (amount != null && amount > 0 && amount <= currentAmount) {
-                        onConfirm(amount)
+                        onConfirm(amount, noteText)
                     }
                 },
                 enabled = amountText.toDoubleOrNull()?.let { it > 0 && it <= currentAmount } == true

@@ -1,6 +1,8 @@
 package com.example.smartledger.domain.repository
 
 import com.example.smartledger.data.local.entity.GoalEntity
+import com.example.smartledger.data.local.entity.GoalTransactionEntity
+import com.example.smartledger.data.local.entity.GoalTransactionType
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -67,4 +69,36 @@ interface GoalRepository {
      * 删除所有目标
      */
     suspend fun deleteAllGoals()
+
+    // ==================== 目标交易记录相关 ====================
+
+    /**
+     * 获取目标的交易记录
+     */
+    fun getGoalTransactions(goalId: Long): Flow<List<GoalTransactionEntity>>
+
+    /**
+     * 获取目标的交易记录（一次性查询）
+     */
+    suspend fun getGoalTransactionsOnce(goalId: Long): List<GoalTransactionEntity>
+
+    /**
+     * 添加存款记录并更新目标金额
+     */
+    suspend fun depositToGoal(goalId: Long, amount: Double, note: String = "")
+
+    /**
+     * 添加取款记录并更新目标金额
+     */
+    suspend fun withdrawFromGoal(goalId: Long, amount: Double, note: String = "")
+
+    /**
+     * 获取目标的存款总额
+     */
+    suspend fun getTotalDeposits(goalId: Long): Double
+
+    /**
+     * 获取目标的取款总额
+     */
+    suspend fun getTotalWithdrawals(goalId: Long): Double
 }

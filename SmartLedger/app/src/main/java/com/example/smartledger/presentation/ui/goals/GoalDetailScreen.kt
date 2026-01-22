@@ -119,8 +119,8 @@ fun GoalDetailScreen(
             currentAmount = uiState.goal!!.currentAmount,
             targetAmount = uiState.goal!!.targetAmount,
             onDismiss = { showDepositDialog = false },
-            onConfirm = { amount ->
-                viewModel.addToGoal(amount)
+            onConfirm = { amount, note ->
+                viewModel.addToGoal(amount, note)
                 showDepositDialog = false
             }
         )
@@ -132,8 +132,8 @@ fun GoalDetailScreen(
             goalName = uiState.goal!!.name,
             currentAmount = uiState.goal!!.currentAmount,
             onDismiss = { showWithdrawDialog = false },
-            onConfirm = { amount ->
-                viewModel.withdrawFromGoal(amount)
+            onConfirm = { amount, note ->
+                viewModel.withdrawFromGoal(amount, note)
                 showWithdrawDialog = false
             }
         )
@@ -234,16 +234,40 @@ fun GoalDetailScreen(
                     )
                 }
 
-                // 存款历史
-                if (uiState.depositHistory.isNotEmpty()) {
+                // 存取款统计汇总
+                if (uiState.totalDeposits > 0 || uiState.totalWithdrawals > 0) {
                     item {
-                        Text(
-                            text = "📜 存款记录",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF1C1C1E),
+                        TransactionSummaryCard(
+                            totalDeposits = uiState.totalDeposits,
+                            totalWithdrawals = uiState.totalWithdrawals,
+                            transactionCount = uiState.depositHistory.size,
                             modifier = Modifier.padding(horizontal = 20.dp)
                         )
+                    }
+                }
+
+                // 存取款历史
+                if (uiState.depositHistory.isNotEmpty()) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "📜 存取记录",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF1C1C1E)
+                            )
+                            Text(
+                                text = "共${uiState.depositHistory.size}笔",
+                                fontSize = 13.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                        }
                     }
 
                     items(uiState.depositHistory) { record ->
@@ -694,6 +718,133 @@ private fun AmountItem(
 }
 
 /**
+ * 存取款统计汇总卡片
+ */
+@Composable
+private fun TransactionSummaryCard(
+    totalDeposits: Double,
+    totalWithdrawals: Double,
+    transactionCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
+            .background(iOSCardBackground)
+            .padding(20.dp)
+    ) {
+        Column {
+            Text(
+                text = "📊 存取统计",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF1C1C1E)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                // 累计存入
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(iOSGreen.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "💰", fontSize = 22.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "累计存入",
+                        fontSize = 12.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Text(
+                        text = "¥${formatAmount(totalDeposits)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iOSGreen
+                    )
+                }
+
+                // 分隔线
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(80.dp)
+                        .background(Color(0xFFE5E5EA))
+                )
+
+                // 累计取出
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(iOSOrange.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "💸", fontSize = 22.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "累计取出",
+                        fontSize = 12.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Text(
+                        text = "¥${formatAmount(totalWithdrawals)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iOSOrange
+                    )
+                }
+
+                // 分隔线
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .height(80.dp)
+                        .background(Color(0xFFE5E5EA))
+                )
+
+                // 操作次数
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .background(iOSAccent.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = "📝", fontSize = 22.sp)
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "操作次数",
+                        fontSize = 12.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                    Text(
+                        text = "${transactionCount}次",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = iOSAccent
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
  * 存款历史项
  */
 @Composable
@@ -711,51 +862,82 @@ private fun DepositHistoryItem(
             .background(iOSCardBackground)
             .padding(16.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (record.isDeposit)
-                                iOSGreen.copy(alpha = 0.15f)
-                            else
-                                iOSOrange.copy(alpha = 0.15f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (record.isDeposit) "💰" else "💸",
-                        fontSize = 18.sp
-                    )
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (record.isDeposit)
+                                    iOSGreen.copy(alpha = 0.15f)
+                                else
+                                    iOSOrange.copy(alpha = 0.15f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (record.isDeposit) "💰" else "💸",
+                            fontSize = 18.sp
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = if (record.isDeposit) "存入" else "取出",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        Text(
+                            text = dateFormat.format(Date(record.date)),
+                            fontSize = 12.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
+
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = if (record.isDeposit) "存入" else "取出",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1C1C1E)
+                        text = "${if (record.isDeposit) "+" else "-"}¥${String.format("%.2f", record.amount)}",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (record.isDeposit) iOSGreen else iOSOrange
                     )
                     Text(
-                        text = dateFormat.format(Date(record.date)),
-                        fontSize = 12.sp,
+                        text = "余额 ¥${String.format("%.2f", record.balanceAfter)}",
+                        fontSize = 11.sp,
                         color = Color(0xFF8E8E93)
                     )
                 }
             }
 
-            Text(
-                text = "${if (record.isDeposit) "+" else "-"}¥${String.format("%.2f", record.amount)}",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (record.isDeposit) iOSGreen else iOSOrange
-            )
+            // 显示备注（如果有）
+            if (record.note.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF2F2F7))
+                        .padding(8.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = "📝", fontSize = 12.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = record.note,
+                            fontSize = 12.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -1032,7 +1214,9 @@ data class DepositRecord(
     val id: Long,
     val amount: Double,
     val isDeposit: Boolean,
-    val date: Long
+    val date: Long,
+    val balanceAfter: Double = 0.0,
+    val note: String = ""
 )
 
 /**
@@ -1055,6 +1239,23 @@ class GoalDetailViewModel @Inject constructor(
 
             val goal = goalRepository.getGoalById(goalId)
             if (goal != null) {
+                // 加载交易历史
+                val transactions = goalRepository.getGoalTransactionsOnce(goalId)
+                val depositHistory = transactions.map { transaction ->
+                    DepositRecord(
+                        id = transaction.id,
+                        amount = transaction.amount,
+                        isDeposit = transaction.type == com.example.smartledger.data.local.entity.GoalTransactionType.DEPOSIT,
+                        date = transaction.createdAt,
+                        balanceAfter = transaction.balanceAfter,
+                        note = transaction.note
+                    )
+                }
+
+                // 获取统计信息
+                val totalDeposits = goalRepository.getTotalDeposits(goalId)
+                val totalWithdrawals = goalRepository.getTotalWithdrawals(goalId)
+
                 _uiState.value = GoalDetailUiState(
                     goal = GoalDetailUiModel(
                         id = goal.id,
@@ -1067,7 +1268,9 @@ class GoalDetailViewModel @Inject constructor(
                         isCompleted = goal.isCompleted,
                         createdAt = goal.createdAt
                     ),
-                    depositHistory = emptyList(), // TODO: 从数据库加载存款历史
+                    depositHistory = depositHistory,
+                    totalDeposits = totalDeposits,
+                    totalWithdrawals = totalWithdrawals,
                     isLoading = false
                 )
             } else {
@@ -1076,23 +1279,16 @@ class GoalDetailViewModel @Inject constructor(
         }
     }
 
-    fun addToGoal(amount: Double) {
+    fun addToGoal(amount: Double, note: String = "") {
         viewModelScope.launch {
-            goalRepository.addToCurrentAmount(currentGoalId, amount)
-
-            // 检查是否达成目标
-            val goal = goalRepository.getGoalById(currentGoalId)
-            if (goal != null && goal.currentAmount >= goal.targetAmount) {
-                goalRepository.markGoalCompleted(currentGoalId)
-            }
-
+            goalRepository.depositToGoal(currentGoalId, amount, note)
             loadGoal(currentGoalId)
         }
     }
 
-    fun withdrawFromGoal(amount: Double) {
+    fun withdrawFromGoal(amount: Double, note: String = "") {
         viewModelScope.launch {
-            goalRepository.addToCurrentAmount(currentGoalId, -amount)
+            goalRepository.withdrawFromGoal(currentGoalId, amount, note)
             loadGoal(currentGoalId)
         }
     }
@@ -1130,5 +1326,7 @@ class GoalDetailViewModel @Inject constructor(
 data class GoalDetailUiState(
     val goal: GoalDetailUiModel? = null,
     val depositHistory: List<DepositRecord> = emptyList(),
+    val totalDeposits: Double = 0.0,
+    val totalWithdrawals: Double = 0.0,
     val isLoading: Boolean = true
 )
