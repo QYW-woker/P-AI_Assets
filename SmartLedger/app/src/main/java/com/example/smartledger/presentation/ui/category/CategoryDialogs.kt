@@ -34,30 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.example.smartledger.data.local.entity.TransactionType
 import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
+import com.example.smartledger.presentation.ui.theme.AppIcons
 import com.example.smartledger.presentation.ui.theme.AppTypography
-
-/**
- * 支出分类图标选项
- */
-private val expenseIcons = listOf(
-    "🍜", "🍔", "☕", "🍰",  // 餐饮
-    "🚗", "🚌", "✈️", "⛽",  // 交通
-    "🛒", "👗", "👟", "💄",  // 购物
-    "🏠", "💡", "💧", "🔧",  // 居住
-    "🎮", "🎬", "🎵", "📚",  // 娱乐教育
-    "💊", "🏥", "🎁", "📱",  // 医疗通讯
-    "👶", "🐕", "💈", "📦"   // 其他
-)
-
-/**
- * 收入分类图标选项
- */
-private val incomeIcons = listOf(
-    "💰", "💵", "💳", "🏆",  // 工资奖金
-    "💼", "📈", "📊", "🏦",  // 副业投资
-    "🧧", "🎁", "💎", "🏠",  // 礼金其他
-    "💻", "📱", "🎯", "⭐"
-)
 
 /**
  * 颜色选项
@@ -82,12 +60,12 @@ fun AddCategoryDialog(
     var name by remember { mutableStateOf("") }
     var selectedIcon by remember {
         mutableStateOf(
-            if (categoryType == TransactionType.EXPENSE) "📦" else "💰"
+            if (categoryType == TransactionType.EXPENSE) AppIcons.ExpenseCategory.OTHER else AppIcons.IncomeCategory.SALARY
         )
     }
     var selectedColor by remember { mutableStateOf("#4ECDC4") }
 
-    val icons = if (categoryType == TransactionType.EXPENSE) expenseIcons else incomeIcons
+    val icons = if (categoryType == TransactionType.EXPENSE) AppIcons.expenseIconList else AppIcons.incomeIconList
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -303,7 +281,7 @@ fun EditCategoryDialog(
     var selectedIcon by remember { mutableStateOf(category.icon) }
     var selectedColor by remember { mutableStateOf(category.color) }
 
-    val icons = if (category.type == TransactionType.EXPENSE) expenseIcons else incomeIcons
+    val icons = if (category.type == TransactionType.EXPENSE) AppIcons.expenseIconList else AppIcons.incomeIconList
 
     AlertDialog(
         onDismissRequest = onDismiss,

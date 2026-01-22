@@ -24,6 +24,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,6 +58,72 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    // Dialog states
+    var showCurrencyDialog by remember { mutableStateOf(false) }
+    var showMonthStartDayDialog by remember { mutableStateOf(false) }
+    var showWeekStartDayDialog by remember { mutableStateOf(false) }
+    var showReminderTimeDialog by remember { mutableStateOf(false) }
+    var showClearDataDialog by remember { mutableStateOf(false) }
+
+    // Currency selection dialog
+    if (showCurrencyDialog) {
+        CurrencySelectionDialog(
+            currentCurrency = uiState.currency,
+            onDismiss = { showCurrencyDialog = false },
+            onConfirm = { currency ->
+                viewModel.setCurrency(currency)
+                showCurrencyDialog = false
+            }
+        )
+    }
+
+    // Month start day dialog
+    if (showMonthStartDayDialog) {
+        MonthStartDayDialog(
+            currentDay = uiState.monthStartDay,
+            onDismiss = { showMonthStartDayDialog = false },
+            onConfirm = { day ->
+                viewModel.setMonthStartDay(day)
+                showMonthStartDayDialog = false
+            }
+        )
+    }
+
+    // Week start day dialog
+    if (showWeekStartDayDialog) {
+        WeekStartDayDialog(
+            currentDay = uiState.weekStartDay,
+            onDismiss = { showWeekStartDayDialog = false },
+            onConfirm = { day ->
+                viewModel.setWeekStartDay(day)
+                showWeekStartDayDialog = false
+            }
+        )
+    }
+
+    // Reminder time dialog
+    if (showReminderTimeDialog) {
+        ReminderTimeDialog(
+            currentTime = uiState.reminderTime,
+            onDismiss = { showReminderTimeDialog = false },
+            onConfirm = { time ->
+                viewModel.setReminderTime(time)
+                showReminderTimeDialog = false
+            }
+        )
+    }
+
+    // Clear data confirmation dialog
+    if (showClearDataDialog) {
+        ConfirmClearDataDialog(
+            onDismiss = { showClearDataDialog = false },
+            onConfirm = {
+                viewModel.clearAllData()
+                showClearDataDialog = false
+            }
+        )
+    }
 
     Scaffold(
         containerColor = iOSBackground
@@ -97,11 +166,11 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 20.dp)
                 ) {
                     SettingsItem(
-                        icon = "💰",
+                        icon = "💱",
                         iconColor = iOSGreen,
                         title = "货币单位",
                         value = uiState.currency,
-                        onClick = { /* TODO: 选择货币 */ }
+                        onClick = { showCurrencyDialog = true }
                     )
 
                     SettingsDivider()
@@ -111,7 +180,7 @@ fun SettingsScreen(
                         iconColor = iOSAccent,
                         title = "每月起始日",
                         value = "每月${uiState.monthStartDay}日",
-                        onClick = { /* TODO: 选择日期 */ }
+                        onClick = { showMonthStartDayDialog = true }
                     )
 
                     SettingsDivider()
@@ -121,7 +190,7 @@ fun SettingsScreen(
                         iconColor = iOSOrange,
                         title = "每周起始日",
                         value = uiState.weekStartDay,
-                        onClick = { /* TODO: 选择星期 */ }
+                        onClick = { showWeekStartDayDialog = true }
                     )
                 }
             }
@@ -173,7 +242,10 @@ fun SettingsScreen(
                         title = "每日记账提醒",
                         subtitle = if (uiState.isDailyReminderEnabled) "每天 ${uiState.reminderTime}" else "关闭",
                         isChecked = uiState.isDailyReminderEnabled,
-                        onCheckedChange = { viewModel.setDailyReminder(it) }
+                        onCheckedChange = { viewModel.setDailyReminder(it) },
+                        onSubtitleClick = if (uiState.isDailyReminderEnabled) {
+                            { showReminderTimeDialog = true }
+                        } else null
                     )
 
                     SettingsDivider()
@@ -209,7 +281,7 @@ fun SettingsScreen(
                         iconColor = iOSAccent,
                         title = "导出数据",
                         subtitle = "导出账单到本地",
-                        onClick = { /* TODO: 导出数据 */ }
+                        onClick = { viewModel.exportData() }
                     )
 
                     SettingsDivider()
@@ -219,7 +291,7 @@ fun SettingsScreen(
                         iconColor = iOSGreen,
                         title = "导入数据",
                         subtitle = "从文件导入账单",
-                        onClick = { /* TODO: 导入数据 */ }
+                        onClick = { viewModel.importData() }
                     )
 
                     SettingsDivider()
@@ -230,7 +302,7 @@ fun SettingsScreen(
                         title = "清除数据",
                         subtitle = "删除所有记账数据",
                         isDestructive = true,
-                        onClick = { /* TODO: 清除数据 */ }
+                        onClick = { showClearDataDialog = true }
                     )
                 }
             }
@@ -500,7 +572,8 @@ private fun SettingsSwitchItem(
     title: String,
     subtitle: String? = null,
     isChecked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    onSubtitleClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = Modifier
@@ -534,7 +607,10 @@ private fun SettingsSwitchItem(
                 Text(
                     text = subtitle,
                     fontSize = 12.sp,
-                    color = Color(0xFF8E8E93)
+                    color = if (onSubtitleClick != null) iOSAccent else Color(0xFF8E8E93),
+                    modifier = if (onSubtitleClick != null) {
+                        Modifier.clickable(onClick = onSubtitleClick)
+                    } else Modifier
                 )
             }
         }

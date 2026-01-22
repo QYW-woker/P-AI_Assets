@@ -77,4 +77,8 @@ class CategoryRepositoryImpl @Inject constructor(
         expenseCategories.forEach { categoryDao.insert(it) }
         incomeCategories.forEach { categoryDao.insert(it) }
     }
+
+    override suspend fun clearCustomCategories() {
+        categoryDao.deleteAllCustomCategories()
+    }
 }

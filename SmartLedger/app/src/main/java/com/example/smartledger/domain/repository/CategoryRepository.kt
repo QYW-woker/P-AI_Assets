@@ -53,4 +53,9 @@ interface CategoryRepository {
      * 初始化默认分类
      */
     suspend fun initDefaultCategories()
+
+    /**
+     * 清除自定义分类（保留系统默认分类）
+     */
+    suspend fun clearCustomCategories()
 }
