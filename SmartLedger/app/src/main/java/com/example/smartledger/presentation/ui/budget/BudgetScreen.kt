@@ -76,11 +76,11 @@ fun BudgetScreen(
         AddBudgetDialog(
             categories = expenseCategories,
             onDismiss = { showAddBudgetDialog = false },
-            onConfirm = { categoryId, amount ->
+            onConfirm = { categoryId, amount, period ->
                 if (categoryId == null) {
-                    viewModel.addTotalBudget(amount)
+                    viewModel.addTotalBudget(amount, period)
                 } else {
-                    viewModel.addCategoryBudget(categoryId, amount)
+                    viewModel.addCategoryBudget(categoryId, amount, period)
                 }
                 showAddBudgetDialog = false
             }
@@ -264,11 +264,21 @@ private fun TotalBudgetCard(
                     Text(text = "📊", fontSize = 20.sp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "本月总预算",
+                        text = "${budget.periodDisplayName}总预算",
                         fontSize = 16.sp,
                         color = Color.White.copy(alpha = 0.8f)
                     )
                 }
+
+                // 显示剩余天数
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "📅 剩余 ${budget.daysRemaining} 天",
+                        fontSize = 12.sp,
+                        color = Color.White.copy(alpha = 0.7f)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "¥${String.format("%,.2f", budget.amount)}",
@@ -463,14 +473,23 @@ private fun CategoryBudgetItem(
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = budget.categoryName ?: "总预算",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF1C1C1E)
-                    )
+                    Column {
+                        Text(
+                            text = budget.categoryName ?: "总预算",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF1C1C1E)
+                        )
+                        // 显示周期信息
+                        Text(
+                            text = "${budget.periodDisplayName} · 剩余${budget.daysRemaining}天",
+                            fontSize = 11.sp,
+                            color = Color(0xFF8E8E93)
+                        )
+                    }
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "¥${String.format("%.0f", budget.used)}",
@@ -609,17 +628,3 @@ private fun EmptyBudgetCard(
     }
 }
 
-/**
- * 预算UI模型
- */
-data class BudgetUiModel(
-    val id: Long,
-    val categoryId: Long?,
-    val categoryName: String?,
-    val categoryIcon: String?,
-    val categoryColor: String?,
-    val amount: Double,
-    val used: Double,
-    val remaining: Double,
-    val dailyAvailable: Double
-)
