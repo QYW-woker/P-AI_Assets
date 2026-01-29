@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Internal cache directory for temporary photo files -->
+    <cache-path
+        name="receipt_images"
+        path="/" />
+
+    <!-- External cache directory as fallback -->
+    <external-cache-path
+        name="external_receipt_images"
+        path="/" />
+</paths>

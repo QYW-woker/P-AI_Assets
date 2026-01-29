@@ -251,6 +251,156 @@ class AiChatViewModel @Inject constructor(
     }
 
     /**
+     * 处理拍照/图片OCR识别结果
+     * @param ocrText 从图片中识别出的文字内容
+     */
+    fun handlePhotoInput(ocrText: String) {
+        if (ocrText.isBlank()) {
+            addMessage(
+                content = "📷 未能识别到有效内容，请确保拍摄清晰或尝试手动输入。",
+                isFromUser = false
+            )
+            return
+        }
+
+        // 显示用户发送了照片
+        addMessage(
+            content = "📷 [拍照记账]",
+            isFromUser = true
+        )
+
+        val result = transactionParser.parseReceipt(ocrText, categories)
+        when (result) {
+            is ParseResult.Success -> {
+                val data = result.data
+                _uiState.update {
+                    it.copy(
+                        showPhotoConfirmDialog = true,
+                        photoParsedTransaction = VoiceParsedTransaction(
+                            amount = data.amount,
+                            type = data.type,
+                            categoryId = data.categoryId,
+                            categoryName = data.categoryName,
+                            note = data.note,
+                            timestamp = data.timestamp
+                        )
+                    )
+                }
+            }
+            is ParseResult.Failure -> {
+                // OCR识别失败，尝试普通解析
+                val normalResult = transactionParser.parse(ocrText, categories)
+                when (normalResult) {
+                    is ParseResult.Success -> {
+                        val data = normalResult.data
+                        _uiState.update {
+                            it.copy(
+                                showPhotoConfirmDialog = true,
+                                photoParsedTransaction = VoiceParsedTransaction(
+                                    amount = data.amount,
+                                    type = data.type,
+                                    categoryId = data.categoryId,
+                                    categoryName = data.categoryName,
+                                    note = data.note,
+                                    timestamp = data.timestamp
+                                )
+                            )
+                        }
+                    }
+                    is ParseResult.Failure -> {
+                        addMessage(
+                            content = "📷 无法从图片中识别出有效的消费信息。\n\n" +
+                                    "识别到的文字：${ocrText.take(100)}...\n\n" +
+                                    "您可以尝试：\n" +
+                                    "• 确保小票/账单清晰可见\n" +
+                                    "• 手动输入消费内容，如「午餐35元」",
+                            isFromUser = false
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 更新图片解析的交易信息
+     */
+    fun updatePhotoParsedTransaction(transaction: VoiceParsedTransaction) {
+        _uiState.update { it.copy(photoParsedTransaction = transaction) }
+    }
+
+    /**
+     * 确认图片识别的交易
+     */
+    fun confirmPhotoTransaction() {
+        val parsed = _uiState.value.photoParsedTransaction ?: return
+        viewModelScope.launch {
+            val account = accounts.firstOrNull()
+            if (account != null) {
+                val transaction = TransactionEntity(
+                    amount = parsed.amount,
+                    type = parsed.type,
+                    categoryId = parsed.categoryId ?: 0L,
+                    accountId = account.id,
+                    date = parsed.timestamp,
+                    note = parsed.note,
+                    tags = ""
+                )
+                transactionRepository.insertTransaction(transaction)
+
+                // 使用 incrementBalance 更新账户余额
+                val balanceChange = if (parsed.type == TransactionType.EXPENSE) {
+                    -parsed.amount
+                } else {
+                    parsed.amount
+                }
+                accountRepository.incrementBalance(account.id, balanceChange)
+
+                _uiState.update {
+                    it.copy(
+                        showPhotoConfirmDialog = false,
+                        photoParsedTransaction = null
+                    )
+                }
+
+                addMessage(
+                    content = "✅ 拍照记账成功！\n\n" +
+                            "金额：¥${String.format("%.2f", parsed.amount)}\n" +
+                            "分类：${parsed.categoryName}\n" +
+                            "备注：${parsed.note}",
+                    isFromUser = false
+                )
+            }
+        }
+    }
+
+    /**
+     * 取消图片识别的交易
+     */
+    fun cancelPhotoTransaction() {
+        _uiState.update {
+            it.copy(
+                showPhotoConfirmDialog = false,
+                photoParsedTransaction = null
+            )
+        }
+    }
+
+    /**
+     * 切换输入模式选择器显示
+     */
+    fun toggleInputModeSelector() {
+        _uiState.update { it.copy(showInputModeSelector = !it.showInputModeSelector) }
+    }
+
+    /**
+     * 隐藏输入模式选择器
+     */
+    fun hideInputModeSelector() {
+        _uiState.update { it.copy(showInputModeSelector = false) }
+    }
+
+    /**
      * 获取所有分类
      */
     fun getCategories(): List<CategoryEntity> = categories
@@ -798,7 +948,10 @@ data class AiChatUiState(
     val showConfirmation: Boolean = false,
     val showBatchConfirmation: Boolean = false,
     val showVoiceConfirmDialog: Boolean = false,
-    val voiceParsedTransaction: VoiceParsedTransaction? = null
+    val voiceParsedTransaction: VoiceParsedTransaction? = null,
+    val showPhotoConfirmDialog: Boolean = false,
+    val photoParsedTransaction: VoiceParsedTransaction? = null,
+    val showInputModeSelector: Boolean = false
 )
 
 /**

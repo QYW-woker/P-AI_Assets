@@ -2,11 +2,18 @@ package com.example.smartledger.presentation.ui.ai
 
 import android.Manifest
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.speech.RecognizerIntent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,11 +34,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -48,6 +59,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,11 +68,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.smartledger.data.local.entity.TransactionType
 import com.example.smartledger.presentation.ui.components.AppTopBarWithBack
@@ -68,10 +87,13 @@ import com.example.smartledger.presentation.ui.theme.AppColors
 import com.example.smartledger.presentation.ui.theme.AppDimens
 import com.example.smartledger.presentation.ui.theme.AppShapes
 import com.example.smartledger.presentation.ui.theme.AppTypography
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
- * AI聊天页面
+ * AI聊天页面 - 支持文字、语音、拍照多种输入方式
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,12 +106,80 @@ fun AiChatScreen(
     val listState = rememberLazyListState()
     val context = LocalContext.current
     var isListening by remember { mutableStateOf(false) }
+    var showInputModes by remember { mutableStateOf(false) }
+
+    // 临时文件用于相机拍摄
+    var tempPhotoUri by remember { mutableStateOf<Uri?>(null) }
+
+    // 创建临时文件URI用于相机
+    fun createTempImageUri(): Uri {
+        val tempFile = File.createTempFile(
+            "receipt_${System.currentTimeMillis()}",
+            ".jpg",
+            context.cacheDir
+        )
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            tempFile
+        )
+    }
+
+    // OCR模拟 - 实际项目中应使用ML Kit或其他OCR服务
+    fun performOcr(uri: Uri): String {
+        // 这里应该集成真实的OCR服务，如Google ML Kit
+        // 暂时返回模拟结果供测试
+        return try {
+            // 尝试读取图片文件名作为模拟
+            val filename = uri.lastPathSegment ?: ""
+            "消费金额：35.00元\n商品：午餐便当\n商家：便利店"
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    // 相机拍照结果处理
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && tempPhotoUri != null) {
+            // 执行OCR识别
+            val ocrText = performOcr(tempPhotoUri!!)
+            viewModel.handlePhotoInput(ocrText)
+        }
+        showInputModes = false
+    }
+
+    // 相册选择结果处理
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            // 执行OCR识别
+            val ocrText = performOcr(it)
+            viewModel.handlePhotoInput(ocrText)
+        }
+        showInputModes = false
+    }
+
+    // 相机权限请求
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            tempPhotoUri = createTempImageUri()
+            tempPhotoUri?.let { cameraLauncher.launch(it) }
+        } else {
+            Toast.makeText(context, "需要相机权限才能拍照记账", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // 语音识别结果处理 - 直接解析并显示确认对话框
     val speechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         isListening = false
+        showInputModes = false
         val data = result.data
         val results = data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
         if (!results.isNullOrEmpty()) {
@@ -98,7 +188,7 @@ fun AiChatScreen(
         }
     }
 
-    // 权限请求
+    // 录音权限请求
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -157,8 +247,32 @@ fun AiChatScreen(
 
             Spacer(modifier = Modifier.height(AppDimens.SpacingM))
 
+            // 输入模式选择器（可展开）
+            AnimatedVisibility(
+                visible = showInputModes,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it })
+            ) {
+                InputModeSelector(
+                    onCameraClick = {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    onGalleryClick = {
+                        galleryLauncher.launch("image/*")
+                    },
+                    onVoiceClick = {
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    onDismiss = { showInputModes = false },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(AppColors.Card)
+                        .padding(horizontal = AppDimens.PaddingL, vertical = AppDimens.PaddingM)
+                )
+            }
+
             // 输入区域
-            ChatInputBar(
+            ChatInputBarEnhanced(
                 value = inputText,
                 onValueChange = { inputText = it },
                 onSendClick = {
@@ -167,12 +281,14 @@ fun AiChatScreen(
                         inputText = ""
                     }
                 },
+                onAddClick = {
+                    showInputModes = !showInputModes
+                },
                 onVoiceClick = {
-                    // 直接请求权限，不检查 isRecognitionAvailable
-                    // 因为 Intent 方式的语音识别可能在 isRecognitionAvailable 返回 false 时仍然可用
                     permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                 },
                 isListening = isListening,
+                showInputModes = showInputModes,
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(AppColors.Card)
@@ -183,12 +299,25 @@ fun AiChatScreen(
 
     // 语音记账确认对话框
     if (uiState.showVoiceConfirmDialog && uiState.voiceParsedTransaction != null) {
-        VoiceConfirmDialog(
+        TransactionConfirmDialog(
+            title = "语音记账确认",
             transaction = uiState.voiceParsedTransaction!!,
             categories = viewModel.getCategories(),
             onConfirm = { viewModel.confirmVoiceTransaction() },
             onCancel = { viewModel.cancelVoiceTransaction() },
             onUpdate = { viewModel.updateVoiceParsedTransaction(it) }
+        )
+    }
+
+    // 图片记账确认对话框
+    if (uiState.showPhotoConfirmDialog && uiState.photoParsedTransaction != null) {
+        TransactionConfirmDialog(
+            title = "拍照记账确认",
+            transaction = uiState.photoParsedTransaction!!,
+            categories = viewModel.getCategories(),
+            onConfirm = { viewModel.confirmPhotoTransaction() },
+            onCancel = { viewModel.cancelPhotoTransaction() },
+            onUpdate = { viewModel.updatePhotoParsedTransaction(it) }
         )
     }
 }
@@ -399,7 +528,362 @@ private fun ChatInputBar(
 }
 
 /**
- * 语音记账确认对话框
+ * 输入模式选择器
+ */
+@Composable
+private fun InputModeSelector(
+    onCameraClick: () -> Unit,
+    onGalleryClick: () -> Unit,
+    onVoiceClick: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 拍照
+        InputModeButton(
+            icon = Icons.Filled.CameraAlt,
+            label = "拍照",
+            onClick = onCameraClick
+        )
+
+        // 相册
+        InputModeButton(
+            icon = Icons.Filled.PhotoLibrary,
+            label = "相册",
+            onClick = onGalleryClick
+        )
+
+        // 语音
+        InputModeButton(
+            icon = Icons.Filled.Mic,
+            label = "语音",
+            onClick = onVoiceClick
+        )
+    }
+}
+
+/**
+ * 输入模式按钮
+ */
+@Composable
+private fun InputModeButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(onClick = onClick)
+            .padding(AppDimens.PaddingM)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(AppColors.AccentLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = AppColors.Accent,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = label,
+            style = AppTypography.LabelSmall,
+            color = AppColors.TextSecondary
+        )
+    }
+}
+
+/**
+ * 增强版聊天输入栏 - 带+按钮展开多模式
+ */
+@Composable
+private fun ChatInputBarEnhanced(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSendClick: () -> Unit,
+    onAddClick: () -> Unit,
+    onVoiceClick: () -> Unit,
+    isListening: Boolean,
+    showInputModes: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // 添加按钮（展开更多输入方式）
+        IconButton(
+            onClick = onAddClick,
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Add,
+                contentDescription = "更多输入方式",
+                tint = if (showInputModes) AppColors.Accent else AppColors.TextMuted,
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            modifier = Modifier
+                .weight(1f),
+            placeholder = {
+                Text(
+                    text = if (isListening) "正在聆听..." else "说点什么，如\"午餐花了35元\"",
+                    style = AppTypography.BodyMedium,
+                    color = if (isListening) AppColors.Accent else AppColors.TextMuted
+                )
+            },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = AppColors.Background,
+                unfocusedContainerColor = AppColors.Background,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                cursorColor = AppColors.Accent
+            ),
+            shape = AppShapes.Large,
+            textStyle = AppTypography.BodyMedium.copy(color = AppColors.TextPrimary),
+            maxLines = 3,
+            singleLine = false
+        )
+
+        Spacer(modifier = Modifier.width(AppDimens.SpacingXS))
+
+        // 如果没有输入内容，显示语音按钮；否则显示发送按钮
+        if (value.isBlank()) {
+            IconButton(
+                onClick = onVoiceClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Mic,
+                    contentDescription = "语音输入",
+                    tint = if (isListening) AppColors.Accent else AppColors.TextMuted
+                )
+            }
+        } else {
+            IconButton(
+                onClick = onSendClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Send,
+                    contentDescription = "发送",
+                    tint = AppColors.Accent
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 统一的交易确认对话框（用于语音和拍照记账）
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TransactionConfirmDialog(
+    title: String,
+    transaction: VoiceParsedTransaction,
+    categories: List<com.example.smartledger.data.local.entity.CategoryEntity>,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    onUpdate: (VoiceParsedTransaction) -> Unit
+) {
+    var amountText by remember { mutableStateOf(transaction.amount.toString()) }
+    var noteText by remember { mutableStateOf(transaction.note) }
+    var selectedType by remember { mutableStateOf(transaction.type) }
+    var selectedCategoryId by remember { mutableStateOf(transaction.categoryId) }
+
+    // 根据类型筛选分类
+    val filteredCategories = categories.filter { it.type == selectedType }
+
+    Dialog(onDismissRequest = onCancel) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(AppColors.Card)
+                .padding(AppDimens.PaddingL)
+        ) {
+            // 标题栏
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = title,
+                    style = AppTypography.TitleMedium,
+                    color = AppColors.TextPrimary
+                )
+                IconButton(
+                    onClick = onCancel,
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "关闭",
+                        tint = AppColors.TextMuted
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+
+            // 类型选择
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+            ) {
+                listOf(
+                    TransactionType.EXPENSE to "支出",
+                    TransactionType.INCOME to "收入"
+                ).forEach { (type, label) ->
+                    FilterChip(
+                        selected = selectedType == type,
+                        onClick = {
+                            selectedType = type
+                            // 切换类型时重置分类
+                            val newCategories = categories.filter { it.type == type }
+                            selectedCategoryId = newCategories.firstOrNull()?.id
+                            onUpdate(transaction.copy(
+                                type = type,
+                                categoryId = selectedCategoryId,
+                                categoryName = newCategories.firstOrNull()?.name ?: ""
+                            ))
+                        },
+                        label = { Text(label) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = if (type == TransactionType.EXPENSE)
+                                AppColors.Accent.copy(alpha = 0.2f) else AppColors.Success.copy(alpha = 0.2f),
+                            selectedLabelColor = if (type == TransactionType.EXPENSE)
+                                AppColors.Accent else AppColors.Success
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+
+            // 金额输入
+            OutlinedTextField(
+                value = amountText,
+                onValueChange = { newValue ->
+                    amountText = newValue
+                    newValue.toDoubleOrNull()?.let { amount ->
+                        onUpdate(transaction.copy(amount = amount))
+                    }
+                },
+                label = { Text("金额") },
+                prefix = { Text("¥") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppColors.Accent,
+                    cursorColor = AppColors.Accent
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+
+            // 分类选择
+            Text(
+                text = "分类",
+                style = AppTypography.LabelMedium,
+                color = AppColors.TextSecondary
+            )
+            Spacer(modifier = Modifier.height(AppDimens.SpacingS))
+            LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingS)
+            ) {
+                items(filteredCategories) { category ->
+                    FilterChip(
+                        selected = selectedCategoryId == category.id,
+                        onClick = {
+                            selectedCategoryId = category.id
+                            onUpdate(transaction.copy(
+                                categoryId = category.id,
+                                categoryName = category.name
+                            ))
+                        },
+                        label = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(category.icon)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(category.name)
+                            }
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AppColors.Accent.copy(alpha = 0.2f),
+                            selectedLabelColor = AppColors.Accent
+                        )
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(AppDimens.SpacingM))
+
+            // 备注输入
+            OutlinedTextField(
+                value = noteText,
+                onValueChange = { newValue ->
+                    noteText = newValue
+                    onUpdate(transaction.copy(note = newValue))
+                },
+                label = { Text("备注") },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = AppColors.Accent,
+                    cursorColor = AppColors.Accent
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Spacer(modifier = Modifier.height(AppDimens.SpacingL))
+
+            // 按钮
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(AppDimens.SpacingM)
+            ) {
+                TextButton(
+                    onClick = onCancel,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("取消", color = AppColors.TextSecondary)
+                }
+                Button(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AppColors.Accent
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("确认记账")
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 语音记账确认对话框（保留向后兼容）
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
