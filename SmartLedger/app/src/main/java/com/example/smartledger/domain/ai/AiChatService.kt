@@ -45,6 +45,31 @@ class AiChatService @Inject constructor(
     }
 
     /**
+     * 测试API配置是否有效
+     */
+    suspend fun testConnection(config: AiConfig): AiChatResult {
+        if (config.provider == AiProvider.FREE) {
+            return AiChatResult.Success("免费模式无需配置")
+        }
+
+        if (config.apiKey.isBlank()) {
+            return AiChatResult.Error("API密钥不能为空")
+        }
+
+        // 发送一个简单的测试消息
+        val testMessages = listOf(ChatMessageData("你好", true))
+        val testPrompt = "请简短回复'连接成功'"
+
+        return when (config.provider) {
+            AiProvider.FREE -> AiChatResult.Success("免费模式")
+            AiProvider.OPENAI -> callOpenAiApi(config, testMessages, testPrompt)
+            AiProvider.AZURE_OPENAI -> callAzureOpenAiApi(config, testMessages, testPrompt)
+            AiProvider.ANTHROPIC -> callAnthropicApi(config, testMessages, testPrompt)
+            AiProvider.CUSTOM -> callCustomApi(config, testMessages, testPrompt)
+        }
+    }
+
+    /**
      * 免费模式 - 使用本地规则处理
      */
     private fun handleFreeChat(messages: List<ChatMessageData>): AiChatResult {

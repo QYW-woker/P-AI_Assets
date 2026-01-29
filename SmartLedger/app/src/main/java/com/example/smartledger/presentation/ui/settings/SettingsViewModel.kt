@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.smartledger.data.datastore.AiConfig
 import com.example.smartledger.data.datastore.AiProvider
 import com.example.smartledger.data.datastore.SettingsDataStore
+import com.example.smartledger.domain.ai.AiChatResult
+import com.example.smartledger.domain.ai.AiChatService
 import com.example.smartledger.domain.repository.BudgetRepository
 import com.example.smartledger.domain.repository.CategoryRepository
 import com.example.smartledger.domain.repository.GoalRepository
@@ -29,7 +31,8 @@ class SettingsViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val budgetRepository: BudgetRepository,
     private val goalRepository: GoalRepository,
-    private val categoryRepository: CategoryRepository
+    private val categoryRepository: CategoryRepository,
+    private val aiChatService: AiChatService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -123,12 +126,41 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 settingsDataStore.setAiConfig(config)
-                _uiState.update { it.copy(aiConfig = config) }
+                _uiState.update { it.copy(aiConfig = config, aiTestResult = null) }
                 Log.d(TAG, "AI config updated: ${config.provider.displayName}")
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting AI config", e)
             }
         }
+    }
+
+    /**
+     * 测试AI API连接
+     */
+    fun testAiConnection(config: AiConfig) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isTestingAi = true, aiTestResult = null) }
+            try {
+                val result = aiChatService.testConnection(config)
+                val message = when (result) {
+                    is AiChatResult.Success -> "连接成功！AI已响应"
+                    is AiChatResult.Error -> "连接失败: ${result.message}"
+                }
+                _uiState.update { it.copy(isTestingAi = false, aiTestResult = message) }
+                Log.d(TAG, "AI connection test result: $message")
+            } catch (e: Exception) {
+                val errorMessage = "测试失败: ${e.message}"
+                _uiState.update { it.copy(isTestingAi = false, aiTestResult = errorMessage) }
+                Log.e(TAG, "Error testing AI connection", e)
+            }
+        }
+    }
+
+    /**
+     * 清除AI测试结果
+     */
+    fun clearAiTestResult() {
+        _uiState.update { it.copy(aiTestResult = null) }
     }
 
     /**
@@ -196,5 +228,7 @@ data class SettingsUiState(
     val reminderTime: String = "21:00",
     val isBudgetAlertEnabled: Boolean = true,
     val aiConfig: AiConfig = AiConfig(),
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isTestingAi: Boolean = false,
+    val aiTestResult: String? = null
 )

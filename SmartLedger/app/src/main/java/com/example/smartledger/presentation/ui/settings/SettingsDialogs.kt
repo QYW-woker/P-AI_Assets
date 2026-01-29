@@ -600,13 +600,24 @@ fun ConfirmClearDataDialog(
 fun AiConfigDialog(
     currentConfig: AiConfig,
     onDismiss: () -> Unit,
-    onConfirm: (AiConfig) -> Unit
+    onConfirm: (AiConfig) -> Unit,
+    onTestConnection: ((AiConfig) -> Unit)? = null,
+    testResult: String? = null,
+    isTesting: Boolean = false
 ) {
     var selectedProvider by remember { mutableStateOf(currentConfig.provider) }
     var apiKey by remember { mutableStateOf(currentConfig.apiKey) }
     var baseUrl by remember { mutableStateOf(currentConfig.baseUrl) }
     var modelName by remember { mutableStateOf(currentConfig.modelName) }
     var showApiKey by remember { mutableStateOf(false) }
+
+    // 创建当前配置的辅助函数
+    fun createCurrentConfig() = AiConfig(
+        provider = selectedProvider,
+        apiKey = apiKey,
+        baseUrl = baseUrl,
+        modelName = modelName
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -773,6 +784,66 @@ fun AiConfigDialog(
                         )
                     )
 
+                    // 测试连接按钮
+                    if (onTestConnection != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(iOSGreen.copy(alpha = 0.1f))
+                                .clickable(enabled = !isTesting && apiKey.isNotBlank()) {
+                                    onTestConnection(createCurrentConfig())
+                                }
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isTesting) {
+                                    Text(
+                                        text = "⏳ 测试中...",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = iOSOrange
+                                    )
+                                } else {
+                                    Text(
+                                        text = "🔗 测试连接",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (apiKey.isNotBlank()) iOSGreen else Color(0xFF8E8E93)
+                                    )
+                                }
+                            }
+                        }
+
+                        // 显示测试结果
+                        if (testResult != null) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val isSuccess = testResult.contains("成功") || testResult.contains("Success")
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSuccess) iOSGreen.copy(alpha = 0.1f)
+                                        else Color(0xFFFF3B30).copy(alpha = 0.1f)
+                                    )
+                                    .padding(10.dp)
+                            ) {
+                                Text(
+                                    text = if (isSuccess) "✅ $testResult" else "❌ $testResult",
+                                    fontSize = 12.sp,
+                                    color = if (isSuccess) iOSGreen else Color(0xFFFF3B30)
+                                )
+                            }
+                        }
+                    }
+
                     // 提示信息
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -814,13 +885,7 @@ fun AiConfigDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val config = AiConfig(
-                        provider = selectedProvider,
-                        apiKey = apiKey,
-                        baseUrl = baseUrl,
-                        modelName = modelName
-                    )
-                    onConfirm(config)
+                    onConfirm(createCurrentConfig())
                 },
                 enabled = selectedProvider == AiProvider.FREE ||
                         (apiKey.isNotBlank() &&

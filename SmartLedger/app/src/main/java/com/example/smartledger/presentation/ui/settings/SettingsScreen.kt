@@ -132,11 +132,19 @@ fun SettingsScreen(
     if (showAiConfigDialog) {
         AiConfigDialog(
             currentConfig = uiState.aiConfig,
-            onDismiss = { showAiConfigDialog = false },
+            onDismiss = {
+                showAiConfigDialog = false
+                viewModel.clearAiTestResult()
+            },
             onConfirm = { config ->
                 viewModel.setAiConfig(config)
                 showAiConfigDialog = false
-            }
+            },
+            onTestConnection = { config ->
+                viewModel.testAiConnection(config)
+            },
+            testResult = uiState.aiTestResult,
+            isTesting = uiState.isTestingAi
         )
     }
 

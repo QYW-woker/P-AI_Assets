@@ -703,13 +703,31 @@ private fun TransactionConfirmDialog(
     onCancel: () -> Unit,
     onUpdate: (VoiceParsedTransaction) -> Unit
 ) {
-    var amountText by remember { mutableStateOf(transaction.amount.toString()) }
-    var noteText by remember { mutableStateOf(transaction.note) }
-    var selectedType by remember { mutableStateOf(transaction.type) }
-    var selectedCategoryId by remember { mutableStateOf(transaction.categoryId) }
+    // 使用 key 来确保当 transaction 改变时重新初始化状态
+    var amountText by remember(transaction.amount) { mutableStateOf(transaction.amount.toString()) }
+    var noteText by remember(transaction.note) { mutableStateOf(transaction.note) }
+    var selectedType by remember(transaction.type) { mutableStateOf(transaction.type) }
+    var selectedCategoryId by remember(transaction.categoryId) { mutableStateOf(transaction.categoryId) }
+    var selectedCategoryName by remember(transaction.categoryName) { mutableStateOf(transaction.categoryName) }
 
     // 根据类型筛选分类
     val filteredCategories = categories.filter { it.type == selectedType }
+
+    // 辅助函数：使用当前所有状态值创建更新后的交易
+    fun createUpdatedTransaction(
+        newAmount: Double = amountText.toDoubleOrNull() ?: transaction.amount,
+        newType: TransactionType = selectedType,
+        newCategoryId: Long? = selectedCategoryId,
+        newCategoryName: String = selectedCategoryName,
+        newNote: String = noteText
+    ) = VoiceParsedTransaction(
+        amount = newAmount,
+        type = newType,
+        categoryId = newCategoryId,
+        categoryName = newCategoryName,
+        note = newNote,
+        timestamp = transaction.timestamp
+    )
 
     Dialog(onDismissRequest = onCancel) {
         Column(
@@ -759,11 +777,13 @@ private fun TransactionConfirmDialog(
                             selectedType = type
                             // 切换类型时重置分类
                             val newCategories = categories.filter { it.type == type }
-                            selectedCategoryId = newCategories.firstOrNull()?.id
-                            onUpdate(transaction.copy(
-                                type = type,
-                                categoryId = selectedCategoryId,
-                                categoryName = newCategories.firstOrNull()?.name ?: ""
+                            val newCategory = newCategories.firstOrNull()
+                            selectedCategoryId = newCategory?.id
+                            selectedCategoryName = newCategory?.name ?: ""
+                            onUpdate(createUpdatedTransaction(
+                                newType = type,
+                                newCategoryId = newCategory?.id,
+                                newCategoryName = newCategory?.name ?: ""
                             ))
                         },
                         label = { Text(label) },
@@ -786,7 +806,7 @@ private fun TransactionConfirmDialog(
                 onValueChange = { newValue ->
                     amountText = newValue
                     newValue.toDoubleOrNull()?.let { amount ->
-                        onUpdate(transaction.copy(amount = amount))
+                        onUpdate(createUpdatedTransaction(newAmount = amount))
                     }
                 },
                 label = { Text("金额") },
@@ -817,9 +837,10 @@ private fun TransactionConfirmDialog(
                         selected = selectedCategoryId == category.id,
                         onClick = {
                             selectedCategoryId = category.id
-                            onUpdate(transaction.copy(
-                                categoryId = category.id,
-                                categoryName = category.name
+                            selectedCategoryName = category.name
+                            onUpdate(createUpdatedTransaction(
+                                newCategoryId = category.id,
+                                newCategoryName = category.name
                             ))
                         },
                         label = {
@@ -844,7 +865,7 @@ private fun TransactionConfirmDialog(
                 value = noteText,
                 onValueChange = { newValue ->
                     noteText = newValue
-                    onUpdate(transaction.copy(note = newValue))
+                    onUpdate(createUpdatedTransaction(newNote = newValue))
                 },
                 label = { Text("备注") },
                 colors = OutlinedTextFieldDefaults.colors(
@@ -869,7 +890,11 @@ private fun TransactionConfirmDialog(
                     Text("取消", color = AppColors.TextSecondary)
                 }
                 Button(
-                    onClick = onConfirm,
+                    onClick = {
+                        // 确认前更新一次完整状态
+                        onUpdate(createUpdatedTransaction())
+                        onConfirm()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.Accent
                     ),
