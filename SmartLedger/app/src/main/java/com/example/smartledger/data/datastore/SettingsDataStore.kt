@@ -35,6 +35,11 @@ class SettingsDataStore @Inject constructor(
         val DEFAULT_ACCOUNT_ID = longPreferencesKey("default_account_id")
         val IS_FIRST_LAUNCH = booleanPreferencesKey("is_first_launch")
         val LAST_BACKUP_TIME = stringPreferencesKey("last_backup_time")
+        // AI API 配置
+        val AI_PROVIDER = stringPreferencesKey("ai_provider")
+        val AI_API_KEY = stringPreferencesKey("ai_api_key")
+        val AI_API_BASE_URL = stringPreferencesKey("ai_api_base_url")
+        val AI_MODEL_NAME = stringPreferencesKey("ai_model_name")
     }
 
     /**
@@ -51,7 +56,28 @@ class SettingsDataStore @Inject constructor(
             isBudgetAlertEnabled = preferences[PreferencesKeys.IS_BUDGET_ALERT_ENABLED] ?: true,
             defaultAccountId = preferences[PreferencesKeys.DEFAULT_ACCOUNT_ID] ?: 0L,
             isFirstLaunch = preferences[PreferencesKeys.IS_FIRST_LAUNCH] ?: true,
-            lastBackupTime = preferences[PreferencesKeys.LAST_BACKUP_TIME]
+            lastBackupTime = preferences[PreferencesKeys.LAST_BACKUP_TIME],
+            // AI 配置
+            aiProvider = preferences[PreferencesKeys.AI_PROVIDER] ?: AiProvider.FREE.name,
+            aiApiKey = preferences[PreferencesKeys.AI_API_KEY] ?: "",
+            aiApiBaseUrl = preferences[PreferencesKeys.AI_API_BASE_URL] ?: "",
+            aiModelName = preferences[PreferencesKeys.AI_MODEL_NAME] ?: ""
+        )
+    }
+
+    /**
+     * 获取AI配置
+     */
+    val aiConfigFlow: Flow<AiConfig> = context.dataStore.data.map { preferences ->
+        AiConfig(
+            provider = try {
+                AiProvider.valueOf(preferences[PreferencesKeys.AI_PROVIDER] ?: AiProvider.FREE.name)
+            } catch (e: Exception) {
+                AiProvider.FREE
+            },
+            apiKey = preferences[PreferencesKeys.AI_API_KEY] ?: "",
+            baseUrl = preferences[PreferencesKeys.AI_API_BASE_URL] ?: "",
+            modelName = preferences[PreferencesKeys.AI_MODEL_NAME] ?: ""
         )
     }
 
@@ -153,6 +179,78 @@ class SettingsDataStore @Inject constructor(
             preferences.clear()
         }
     }
+
+    /**
+     * 设置AI提供商
+     */
+    suspend fun setAiProvider(provider: AiProvider) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_PROVIDER] = provider.name
+        }
+    }
+
+    /**
+     * 设置AI API配置
+     */
+    suspend fun setAiConfig(config: AiConfig) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_PROVIDER] = config.provider.name
+            preferences[PreferencesKeys.AI_API_KEY] = config.apiKey
+            preferences[PreferencesKeys.AI_API_BASE_URL] = config.baseUrl
+            preferences[PreferencesKeys.AI_MODEL_NAME] = config.modelName
+        }
+    }
+
+    /**
+     * 清除AI API配置
+     */
+    suspend fun clearAiConfig() {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.AI_PROVIDER] = AiProvider.FREE.name
+            preferences[PreferencesKeys.AI_API_KEY] = ""
+            preferences[PreferencesKeys.AI_API_BASE_URL] = ""
+            preferences[PreferencesKeys.AI_MODEL_NAME] = ""
+        }
+    }
+}
+
+/**
+ * AI提供商枚举
+ */
+enum class AiProvider(val displayName: String, val description: String) {
+    FREE("免费AI", "使用内置免费AI服务，功能有限"),
+    OPENAI("OpenAI", "使用OpenAI API (GPT系列模型)"),
+    AZURE_OPENAI("Azure OpenAI", "使用Azure OpenAI服务"),
+    ANTHROPIC("Anthropic", "使用Anthropic API (Claude系列模型)"),
+    CUSTOM("自定义API", "使用兼容OpenAI格式的自定义API")
+}
+
+/**
+ * AI配置数据类
+ */
+data class AiConfig(
+    val provider: AiProvider = AiProvider.FREE,
+    val apiKey: String = "",
+    val baseUrl: String = "",
+    val modelName: String = ""
+) {
+    val isConfigured: Boolean
+        get() = when (provider) {
+            AiProvider.FREE -> true
+            AiProvider.OPENAI -> apiKey.isNotBlank()
+            AiProvider.AZURE_OPENAI -> apiKey.isNotBlank() && baseUrl.isNotBlank()
+            AiProvider.ANTHROPIC -> apiKey.isNotBlank()
+            AiProvider.CUSTOM -> apiKey.isNotBlank() && baseUrl.isNotBlank()
+        }
+
+    val defaultModel: String
+        get() = when (provider) {
+            AiProvider.FREE -> "free-model"
+            AiProvider.OPENAI -> "gpt-3.5-turbo"
+            AiProvider.AZURE_OPENAI -> "gpt-35-turbo"
+            AiProvider.ANTHROPIC -> "claude-3-haiku-20240307"
+            AiProvider.CUSTOM -> modelName.ifBlank { "default" }
+        }
 }
 
 /**
@@ -168,5 +266,10 @@ data class AppSettings(
     val isBudgetAlertEnabled: Boolean = true,
     val defaultAccountId: Long = 0L,
     val isFirstLaunch: Boolean = true,
-    val lastBackupTime: String? = null
+    val lastBackupTime: String? = null,
+    // AI 配置
+    val aiProvider: String = AiProvider.FREE.name,
+    val aiApiKey: String = "",
+    val aiApiBaseUrl: String = "",
+    val aiModelName: String = ""
 )

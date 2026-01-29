@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.smartledger.data.datastore.AiConfig
+import com.example.smartledger.data.datastore.AiProvider
 
 // iOS风格颜色
 private val iOSBackground = Color(0xFFF2F2F7)
@@ -65,6 +67,7 @@ fun SettingsScreen(
     var showWeekStartDayDialog by remember { mutableStateOf(false) }
     var showReminderTimeDialog by remember { mutableStateOf(false) }
     var showClearDataDialog by remember { mutableStateOf(false) }
+    var showAiConfigDialog by remember { mutableStateOf(false) }
 
     // Currency selection dialog
     if (showCurrencyDialog) {
@@ -121,6 +124,18 @@ fun SettingsScreen(
             onConfirm = {
                 viewModel.clearAllData()
                 showClearDataDialog = false
+            }
+        )
+    }
+
+    // AI configuration dialog
+    if (showAiConfigDialog) {
+        AiConfigDialog(
+            currentConfig = uiState.aiConfig,
+            onDismiss = { showAiConfigDialog = false },
+            onConfirm = { config ->
+                viewModel.setAiConfig(config)
+                showAiConfigDialog = false
             }
         )
     }
@@ -257,6 +272,32 @@ fun SettingsScreen(
                         subtitle = "当预算使用超过80%时提醒",
                         isChecked = uiState.isBudgetAlertEnabled,
                         onCheckedChange = { viewModel.setBudgetAlert(it) }
+                    )
+                }
+            }
+
+            // AI助手设置
+            item {
+                Text(
+                    text = "🤖 AI助手",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF8E8E93),
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                )
+            }
+
+            item {
+                SettingsSection(
+                    modifier = Modifier.padding(horizontal = 20.dp)
+                ) {
+                    SettingsItem(
+                        icon = "🔌",
+                        iconColor = iOSPurple,
+                        title = "AI服务配置",
+                        subtitle = uiState.aiConfig.provider.displayName,
+                        value = if (uiState.aiConfig.isConfigured) "已配置" else "未配置",
+                        onClick = { showAiConfigDialog = true }
                     )
                 }
             }

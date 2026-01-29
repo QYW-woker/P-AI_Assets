@@ -12,11 +12,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -30,14 +34,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.smartledger.data.datastore.AiConfig
+import com.example.smartledger.data.datastore.AiProvider
 import com.example.smartledger.presentation.ui.theme.AppIcons
 
 // iOS风格颜色
 private val iOSCardBackground = Color.White
 private val iOSAccent = Color(0xFF007AFF)
 private val iOSGreen = Color(0xFF34C759)
+private val iOSPurple = Color(0xFFAF52DE)
+private val iOSOrange = Color(0xFFFF9500)
 
 /**
  * 货币选项
@@ -580,4 +591,311 @@ fun ConfirmClearDataDialog(
             }
         }
     )
+}
+
+/**
+ * AI配置对话框
+ */
+@Composable
+fun AiConfigDialog(
+    currentConfig: AiConfig,
+    onDismiss: () -> Unit,
+    onConfirm: (AiConfig) -> Unit
+) {
+    var selectedProvider by remember { mutableStateOf(currentConfig.provider) }
+    var apiKey by remember { mutableStateOf(currentConfig.apiKey) }
+    var baseUrl by remember { mutableStateOf(currentConfig.baseUrl) }
+    var modelName by remember { mutableStateOf(currentConfig.modelName) }
+    var showApiKey by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = iOSCardBackground,
+        shape = RoundedCornerShape(24.dp),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = "🤖", fontSize = 24.sp)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "AI助手配置",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF1C1C1E)
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                // 提供商选择
+                Text(
+                    text = "🔌 选择AI服务商",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF8E8E93)
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AiProvider.entries.forEach { provider ->
+                    AiProviderOptionItem(
+                        provider = provider,
+                        selected = selectedProvider == provider,
+                        onClick = {
+                            selectedProvider = provider
+                            // 重置配置
+                            if (provider == AiProvider.FREE) {
+                                apiKey = ""
+                                baseUrl = ""
+                                modelName = ""
+                            } else if (provider == AiProvider.OPENAI) {
+                                baseUrl = "https://api.openai.com/v1"
+                                modelName = "gpt-3.5-turbo"
+                            } else if (provider == AiProvider.ANTHROPIC) {
+                                baseUrl = "https://api.anthropic.com"
+                                modelName = "claude-3-haiku-20240307"
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // 非免费模式需要配置API
+                if (selectedProvider != AiProvider.FREE) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // API Key
+                    Text(
+                        text = "🔑 API Key",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = apiKey,
+                        onValueChange = { apiKey = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text("输入您的API Key", color = Color(0xFFC7C7CC))
+                        },
+                        visualTransformation = if (showApiKey)
+                            VisualTransformation.None
+                        else
+                            PasswordVisualTransformation(),
+                        trailingIcon = {
+                            Text(
+                                text = if (showApiKey) "🙈" else "👁️",
+                                fontSize = 16.sp,
+                                modifier = Modifier.clickable { showApiKey = !showApiKey }
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = iOSPurple,
+                            unfocusedBorderColor = Color(0xFFE5E5EA)
+                        )
+                    )
+
+                    // 需要自定义URL的提供商
+                    if (selectedProvider == AiProvider.AZURE_OPENAI ||
+                        selectedProvider == AiProvider.CUSTOM
+                    ) {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "🌐 API地址",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFF8E8E93)
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = baseUrl,
+                            onValueChange = { baseUrl = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = {
+                                Text(
+                                    if (selectedProvider == AiProvider.AZURE_OPENAI)
+                                        "https://your-resource.openai.azure.com"
+                                    else
+                                        "https://api.example.com/v1",
+                                    color = Color(0xFFC7C7CC)
+                                )
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = iOSPurple,
+                                unfocusedBorderColor = Color(0xFFE5E5EA)
+                            )
+                        )
+                    }
+
+                    // 模型名称
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "🧠 模型名称",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF8E8E93)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    OutlinedTextField(
+                        value = modelName,
+                        onValueChange = { modelName = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = {
+                            Text(
+                                when (selectedProvider) {
+                                    AiProvider.OPENAI -> "gpt-3.5-turbo / gpt-4"
+                                    AiProvider.AZURE_OPENAI -> "gpt-35-turbo"
+                                    AiProvider.ANTHROPIC -> "claude-3-haiku-20240307"
+                                    else -> "输入模型名称"
+                                },
+                                color = Color(0xFFC7C7CC)
+                            )
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = iOSPurple,
+                            unfocusedBorderColor = Color(0xFFE5E5EA)
+                        )
+                    )
+
+                    // 提示信息
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(iOSPurple.copy(alpha = 0.1f))
+                            .padding(12.dp)
+                    ) {
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = "💡", fontSize = 14.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "提示",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = iOSPurple
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = when (selectedProvider) {
+                                    AiProvider.OPENAI -> "请在 platform.openai.com 获取API Key"
+                                    AiProvider.AZURE_OPENAI -> "请在 Azure Portal 获取部署信息"
+                                    AiProvider.ANTHROPIC -> "请在 console.anthropic.com 获取API Key"
+                                    AiProvider.CUSTOM -> "确保API兼容OpenAI格式"
+                                    else -> ""
+                                },
+                                fontSize = 12.sp,
+                                color = Color(0xFF8E8E93)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val config = AiConfig(
+                        provider = selectedProvider,
+                        apiKey = apiKey,
+                        baseUrl = baseUrl,
+                        modelName = modelName
+                    )
+                    onConfirm(config)
+                },
+                enabled = selectedProvider == AiProvider.FREE ||
+                        (apiKey.isNotBlank() &&
+                                (selectedProvider != AiProvider.AZURE_OPENAI && selectedProvider != AiProvider.CUSTOM || baseUrl.isNotBlank()))
+            ) {
+                Text(
+                    text = "✓ 保存",
+                    color = iOSPurple,
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    "取消",
+                    color = Color(0xFF8E8E93),
+                    fontSize = 16.sp
+                )
+            }
+        }
+    )
+}
+
+@Composable
+private fun AiProviderOptionItem(
+    provider: AiProvider,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val icon = when (provider) {
+        AiProvider.FREE -> "🆓"
+        AiProvider.OPENAI -> "🟢"
+        AiProvider.AZURE_OPENAI -> "☁️"
+        AiProvider.ANTHROPIC -> "🟠"
+        AiProvider.CUSTOM -> "⚙️"
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) iOSPurple.copy(alpha = 0.1f) else Color(0xFFF2F2F7))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(text = icon, fontSize = 20.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = provider.displayName,
+                        fontSize = 15.sp,
+                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                        color = if (selected) iOSPurple else Color(0xFF1C1C1E)
+                    )
+                    Text(
+                        text = provider.description,
+                        fontSize = 11.sp,
+                        color = Color(0xFF8E8E93)
+                    )
+                }
+            }
+            if (selected) {
+                Text(
+                    text = AppIcons.Status.SUCCESS,
+                    fontSize = 18.sp
+                )
+            }
+        }
+    }
 }

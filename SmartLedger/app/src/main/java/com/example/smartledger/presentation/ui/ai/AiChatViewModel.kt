@@ -6,6 +6,11 @@ import com.example.smartledger.data.local.entity.AccountEntity
 import com.example.smartledger.data.local.entity.CategoryEntity
 import com.example.smartledger.data.local.entity.TransactionEntity
 import com.example.smartledger.data.local.entity.TransactionType
+import com.example.smartledger.data.datastore.AiProvider
+import com.example.smartledger.data.datastore.SettingsDataStore
+import com.example.smartledger.domain.ai.AiChatResult
+import com.example.smartledger.domain.ai.AiChatService
+import com.example.smartledger.domain.ai.ChatMessageData
 import com.example.smartledger.domain.ai.FinancialAnalyzer
 import com.example.smartledger.domain.ai.ParseResult
 import com.example.smartledger.domain.ai.SmartTransactionParser
@@ -36,7 +41,9 @@ class AiChatViewModel @Inject constructor(
     private val budgetRepository: BudgetRepository,
     private val goalRepository: GoalRepository,
     private val transactionParser: SmartTransactionParser,
-    private val financialAnalyzer: FinancialAnalyzer
+    private val financialAnalyzer: FinancialAnalyzer,
+    private val settingsDataStore: SettingsDataStore,
+    private val aiChatService: AiChatService
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AiChatUiState())
@@ -50,19 +57,33 @@ class AiChatViewModel @Inject constructor(
 
     init {
         loadInitialData()
-        addMessage(
-            content = "你好！我是你的AI记账助手 🤖\n\n" +
-                    "你可以直接告诉我消费内容，比如：\n" +
-                    "• 「午餐花了35元」\n" +
-                    "• 「打车15块」\n" +
-                    "• 「收到工资8000」\n\n" +
-                    "也可以问我：\n" +
-                    "• 「本月分析」- 查看财务状况\n" +
-                    "• 「预算情况」- 查看预算使用\n" +
-                    "• 「目标进度」- 查看储蓄目标\n" +
-                    "• 「省钱建议」- 获取理财建议",
-            isFromUser = false
-        )
+        loadAiConfigAndShowWelcome()
+    }
+
+    private fun loadAiConfigAndShowWelcome() {
+        viewModelScope.launch {
+            val aiConfig = settingsDataStore.aiConfigFlow.first()
+            val aiModeText = if (aiConfig.provider != AiProvider.FREE && aiConfig.isConfigured) {
+                "🔌 已连接: ${aiConfig.provider.displayName}"
+            } else {
+                "💡 提示: 可在设置中配置AI API以获得更智能的对话"
+            }
+
+            addMessage(
+                content = "你好！我是你的AI记账助手 🤖\n\n" +
+                        "$aiModeText\n\n" +
+                        "你可以直接告诉我消费内容，比如：\n" +
+                        "• 「午餐花了35元」\n" +
+                        "• 「打车15块」\n" +
+                        "• 「收到工资8000」\n\n" +
+                        "也可以问我：\n" +
+                        "• 「本月分析」- 查看财务状况\n" +
+                        "• 「预算情况」- 查看预算使用\n" +
+                        "• 「目标进度」- 查看储蓄目标\n" +
+                        "• 「省钱建议」- 获取理财建议",
+                isFromUser = false
+            )
+        }
     }
 
     private fun loadInitialData() {
@@ -250,19 +271,36 @@ class AiChatViewModel @Inject constructor(
     private suspend fun processMessage(content: String): String {
         val lowerContent = content.lowercase()
 
-        return when {
+        // 首先处理确认/取消等特殊指令
+        when {
             // 确认记账
             pendingTransaction != null && (lowerContent.contains("确认") || lowerContent.contains("是") || lowerContent == "好" || lowerContent == "ok") -> {
                 confirmTransaction()
-                "" // 由confirmTransaction处理回复
+                return "" // 由confirmTransaction处理回复
             }
 
             // 取消记账
             pendingTransaction != null && (lowerContent.contains("取消") || lowerContent.contains("不") || lowerContent.contains("算了")) -> {
                 cancelTransaction()
-                "" // 由cancelTransaction处理回复
+                return "" // 由cancelTransaction处理回复
             }
 
+            // 确认批量记账
+            pendingBatchTransactions.isNotEmpty() && (lowerContent.contains("全部确认") || lowerContent.contains("确认全部")) -> {
+                confirmBatchTransactions()
+                return ""
+            }
+        }
+
+        // 检查是否配置了外部AI API
+        val aiConfig = settingsDataStore.aiConfigFlow.first()
+        if (aiConfig.provider != AiProvider.FREE && aiConfig.isConfigured) {
+            // 使用外部AI API处理
+            return processWithExternalAi(content)
+        }
+
+        // 使用本地处理逻辑
+        return when {
             // 本月分析
             lowerContent.contains("本月分析") || lowerContent.contains("分析") || lowerContent.contains("报告") -> {
                 generateMonthlyAnalysisResponse()
@@ -293,16 +331,97 @@ class AiChatViewModel @Inject constructor(
                 tryParseBatchTransactions(content)
             }
 
-            // 确认批量记账
-            pendingBatchTransactions.isNotEmpty() && (lowerContent.contains("全部确认") || lowerContent.contains("确认全部")) -> {
-                confirmBatchTransactions()
-                ""
-            }
-
             // 尝试解析记账
             else -> {
                 tryParseAndRecordTransaction(content)
             }
+        }
+    }
+
+    /**
+     * 使用外部AI API处理消息
+     */
+    private suspend fun processWithExternalAi(content: String): String {
+        // 构建对话历史
+        val recentMessages = _uiState.value.messages.takeLast(10).map { msg ->
+            ChatMessageData(
+                content = msg.content,
+                isFromUser = msg.isFromUser
+            )
+        }
+
+        // 添加当前消息
+        val messages = recentMessages + ChatMessageData(content, true)
+
+        // 添加财务上下文
+        val financialContext = buildFinancialContext()
+
+        val systemPrompt = """${AiChatService.DEFAULT_SYSTEM_PROMPT}
+
+当前用户的财务数据摘要：
+$financialContext
+
+如果用户想要记账，请提取以下信息并按格式回复：
+- 金额
+- 类型（支出/收入）
+- 分类建议
+- 备注
+
+如果用户询问财务问题，基于上述数据给出建议。"""
+
+        return when (val result = aiChatService.chat(messages, systemPrompt)) {
+            is AiChatResult.Success -> result.content
+            is AiChatResult.Error -> {
+                // AI服务出错，回退到本地处理
+                "⚠️ AI服务暂时不可用: ${result.message}\n\n正在使用本地模式...\n\n" +
+                        tryParseAndRecordTransaction(content)
+            }
+        }
+    }
+
+    /**
+     * 构建财务上下文信息
+     */
+    private suspend fun buildFinancialContext(): String {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        calendar.set(Calendar.HOUR_OF_DAY, 0)
+        calendar.set(Calendar.MINUTE, 0)
+        calendar.set(Calendar.SECOND, 0)
+        val monthStart = calendar.timeInMillis
+
+        calendar.add(Calendar.MONTH, 1)
+        val monthEnd = calendar.timeInMillis
+
+        val transactions = transactionRepository.getTransactionsByDateRange(monthStart, monthEnd)
+        val budgets = budgetRepository.getAllBudgets()
+        val goals = goalRepository.getAllGoals().first()
+
+        val totalExpense = transactions.filter { it.type == TransactionType.EXPENSE }.sumOf { it.amount }
+        val totalIncome = transactions.filter { it.type == TransactionType.INCOME }.sumOf { it.amount }
+
+        return buildString {
+            appendLine("本月支出: ¥${String.format("%.2f", totalExpense)}")
+            appendLine("本月收入: ¥${String.format("%.2f", totalIncome)}")
+            appendLine("本月结余: ¥${String.format("%.2f", totalIncome - totalExpense)}")
+
+            if (budgets.isNotEmpty()) {
+                val totalBudget = budgets.sumOf { it.amount }
+                appendLine("本月预算: ¥${String.format("%.2f", totalBudget)}")
+                appendLine("预算使用: ${String.format("%.1f", totalExpense / totalBudget * 100)}%")
+            }
+
+            if (goals.isNotEmpty()) {
+                appendLine("储蓄目标: ${goals.size}个")
+                val totalGoalAmount = goals.sumOf { it.targetAmount }
+                val totalSaved = goals.sumOf { it.currentAmount }
+                appendLine("目标总额: ¥${String.format("%.2f", totalGoalAmount)}")
+                appendLine("已存入: ¥${String.format("%.2f", totalSaved)}")
+            }
+
+            // 添加分类列表
+            appendLine("\n可用的支出分类: ${categories.filter { it.type == TransactionType.EXPENSE }.joinToString(", ") { it.name }}")
+            appendLine("可用的收入分类: ${categories.filter { it.type == TransactionType.INCOME }.joinToString(", ") { it.name }}")
         }
     }
 

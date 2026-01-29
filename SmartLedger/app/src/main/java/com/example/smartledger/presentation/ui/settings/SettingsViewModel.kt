@@ -3,6 +3,8 @@ package com.example.smartledger.presentation.ui.settings
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.smartledger.data.datastore.AiConfig
+import com.example.smartledger.data.datastore.AiProvider
 import com.example.smartledger.data.datastore.SettingsDataStore
 import com.example.smartledger.domain.repository.BudgetRepository
 import com.example.smartledger.domain.repository.CategoryRepository
@@ -35,21 +37,32 @@ class SettingsViewModel @Inject constructor(
 
     init {
         loadSettings()
+        loadAiConfig()
     }
 
     private fun loadSettings() {
         viewModelScope.launch {
             settingsDataStore.settingsFlow.collect { settings ->
-                _uiState.value = SettingsUiState(
-                    currency = settings.currency,
-                    monthStartDay = settings.monthStartDay,
-                    weekStartDay = settings.weekStartDay,
-                    isDarkMode = settings.isDarkMode,
-                    isDailyReminderEnabled = settings.isDailyReminderEnabled,
-                    reminderTime = settings.reminderTime,
-                    isBudgetAlertEnabled = settings.isBudgetAlertEnabled,
-                    isLoading = false
-                )
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        currency = settings.currency,
+                        monthStartDay = settings.monthStartDay,
+                        weekStartDay = settings.weekStartDay,
+                        isDarkMode = settings.isDarkMode,
+                        isDailyReminderEnabled = settings.isDailyReminderEnabled,
+                        reminderTime = settings.reminderTime,
+                        isBudgetAlertEnabled = settings.isBudgetAlertEnabled,
+                        isLoading = false
+                    )
+                }
+            }
+        }
+    }
+
+    private fun loadAiConfig() {
+        viewModelScope.launch {
+            settingsDataStore.aiConfigFlow.collect { config ->
+                _uiState.update { it.copy(aiConfig = config) }
             }
         }
     }
@@ -100,6 +113,21 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.setBudgetAlert(enabled)
             _uiState.update { it.copy(isBudgetAlertEnabled = enabled) }
+        }
+    }
+
+    /**
+     * 设置AI配置
+     */
+    fun setAiConfig(config: AiConfig) {
+        viewModelScope.launch {
+            try {
+                settingsDataStore.setAiConfig(config)
+                _uiState.update { it.copy(aiConfig = config) }
+                Log.d(TAG, "AI config updated: ${config.provider.displayName}")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error setting AI config", e)
+            }
         }
     }
 
@@ -167,5 +195,6 @@ data class SettingsUiState(
     val isDailyReminderEnabled: Boolean = false,
     val reminderTime: String = "21:00",
     val isBudgetAlertEnabled: Boolean = true,
+    val aiConfig: AiConfig = AiConfig(),
     val isLoading: Boolean = true
 )
